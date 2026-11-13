@@ -1,3 +1,4 @@
+import type { ModelCatalogue, ModelOption } from "./models/types";
 import { isTarget, isTheme } from "./types";
 import type {
   ApplyResult,
@@ -159,6 +160,50 @@ export function parseImportContent(value: unknown): string {
   const content = requiredString(value, "importContent");
   if (content.trim().length === 0) {
     throw new ContractError("importContent 为空内容");
+  }
+  return content;
+}
+
+function nonEmptyString(value: unknown, path: string): string {
+  const text = requiredString(value, path);
+  if (text.trim().length === 0) {
+    throw new ContractError(`${path} 不应为空`);
+  }
+  return text;
+}
+
+export function parseModelCatalogue(value: unknown): ModelCatalogue {
+  const record = requiredRecord(value, "modelCatalogue");
+  const entries = requiredArray(record["models"], "modelCatalogue.models");
+  const models: ModelOption[] = [];
+  const seen = new Set<string>();
+  entries.forEach((entry, index) => {
+    const path = `modelCatalogue.models[${index}]`;
+    const row = requiredRecord(entry, path);
+    const id = nonEmptyString(row["id"], `${path}.id`);
+    if (seen.has(id)) {
+      return;
+    }
+    seen.add(id);
+    models.push({
+      id,
+      provider: nonEmptyString(row["provider"], `${path}.provider`),
+      model: nonEmptyString(row["model"], `${path}.model`),
+    });
+  });
+  return {
+    models,
+    directory: requiredString(
+      record["directory"],
+      "modelCatalogue.directory",
+    ),
+  };
+}
+
+export function parsePatchedContent(value: unknown): string {
+  const content = requiredString(value, "patchedContent");
+  if (content.trim().length === 0) {
+    throw new ContractError("patchedContent 为空内容");
   }
   return content;
 }

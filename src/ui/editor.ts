@@ -1,5 +1,7 @@
 import { icon } from "../icons/icons";
+import { getState } from "../state/store";
 import type { EditorTab, UiState } from "../state/store";
+import type { Draft } from "../types";
 import { create } from "./dom";
 import { createDiffView } from "./diff-view";
 import { createEditorActions } from "./editor-actions";
@@ -7,6 +9,8 @@ import { createEditorEmpty } from "./editor-empty";
 import { createEditorFields } from "./editor-fields";
 import { createEditorHeader } from "./editor-header";
 import { createEditorStatus } from "./editor-status";
+import { createModelPanel } from "./model-panel";
+import { createModelTabGate } from "./model-tab-gate";
 import type { AppHandlers } from "./handlers";
 
 export interface EditorView {
@@ -20,10 +24,28 @@ export function createEditor(handlers: AppHandlers): EditorView {
   const fieldsView = createEditorFields({ onChange: handlers.onDraftChange });
   const actionsView = createEditorActions(handlers);
   const statusView = createEditorStatus();
+  const modelPanel = createModelPanel({
+    onOpenJson: () => {
+      handlers.onTabChange("edit");
+    },
+  });
+  const modelGate = createModelTabGate();
+
+  const tabModels = create("button", "tab", [
+    icon("sync_alt", 18),
+    create("span", "", ["模型选择"]),
+  ]);
+  tabModels.type = "button";
+  tabModels.id = "tab-models";
+  tabModels.setAttribute("role", "tab");
+  tabModels.setAttribute("aria-controls", "panel-models");
+  tabModels.addEventListener("click", () => {
+    requestModelsTab(tabModels);
+  });
 
   const tabEdit = create("button", "tab", [
     icon("code", 18),
-    create("span", "", ["编辑"]),
+    create("span", "", ["JSON"]),
   ]);
   tabEdit.type = "button";
   tabEdit.id = "tab-edit";
@@ -45,9 +67,41 @@ export function createEditor(handlers: AppHandlers): EditorView {
     handlers.onTabChange("diff");
   });
 
-  const tabs = create("div", "tabs", [tabEdit, tabDiff]);
+  const tabs = create("div", "tabs", [tabModels, tabEdit, tabDiff]);
   tabs.setAttribute("role", "tablist");
   tabs.setAttribute("aria-label", "编辑视图");
+
+  const tabButtons: Record<EditorTab, HTMLButtonElement> = {
+    models: tabModels,
+    edit: tabEdit,
+    diff: tabDiff,
+  };
+  let currentTab: EditorTab = "edit";
+  let hasOmoTarget = false;
+
+  function requestModelsTab(opener: HTMLElement | null): void {
+    const state = getState();
+    if (
+      state.tab === "models" ||
+      state.draft === null ||
+      state.draft.target !== "omo"
+    ) {
+      return;
+    }
+    const token = state.selectionToken;
+    modelGate.request(opener, () => {
+      const next = getState();
+      if (
+        next.draft === null ||
+        next.draft.target !== "omo" ||
+        next.selectionToken !== token
+      ) {
+        return;
+      }
+      handlers.onTabChange("models");
+      tabButtons["models"].focus();
+    });
+  }
 
   tabs.addEventListener("keydown", (event: KeyboardEvent) => {
     if (
@@ -59,11 +113,25 @@ export function createEditor(handlers: AppHandlers): EditorView {
       return;
     }
     event.preventDefault();
-    const next: EditorTab =
-      event.key === "ArrowRight" || event.key === "End" ? "diff" : "edit";
+    const order: readonly EditorTab[] = hasOmoTarget
+      ? ["models", "edit", "diff"]
+      : ["edit", "diff"];
+    const index = Math.max(0, order.indexOf(currentTab));
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? order.length - 1
+          : event.key === "ArrowRight"
+            ? (index + 1) % order.length
+            : (index - 1 + order.length) % order.length;
+    const next = order[nextIndex] ?? "edit";
+    if (next === "models") {
+      requestModelsTab(tabButtons[currentTab] ?? tabModels);
+      return;
+    }
     handlers.onTabChange(next);
-    const button = next === "edit" ? tabEdit : tabDiff;
-    button.focus();
+    tabButtons[next].focus();
   });
 
   const contentLabel = create("label", "field__label", ["JSON 内容"]);
@@ -93,11 +161,20 @@ export function createEditor(handlers: AppHandlers): EditorView {
   diffPanel.setAttribute("role", "tabpanel");
   diffPanel.setAttribute("aria-labelledby", "tab-diff");
 
+  const modelsPanel = create("div", "editor__panel", [modelPanel.element]);
+  modelsPanel.id = "panel-models";
+  modelsPanel.setAttribute("role", "tabpanel");
+  modelsPanel.setAttribute("aria-labelledby", "tab-models");
+
   const toolbarRow = create("div", "editor__toolbar-row", [
     actionsView.element,
     tabs,
   ]);
-  const body = create("div", "editor__body", [editPanel, diffPanel]);
+  const body = create("div", "editor__body", [
+    modelsPanel,
+    editPanel,
+    diffPanel,
+  ]);
 
   const editorElement = create("div", "editor", [
     headerView.element,
@@ -105,6 +182,7 @@ export function createEditor(handlers: AppHandlers): EditorView {
     toolbarRow,
     body,
     statusView.element,
+    modelGate.element,
   ]);
 
   const emptyView = createEditorEmpty(handlers);
@@ -116,16 +194,30 @@ export function createEditor(handlers: AppHandlers): EditorView {
 
   let lastToken = -1;
 
-  function syncTabs(state: UiState): void {
-    const editSelected = state.tab === "edit";
+  function syncTabs(state: UiState, draft: Draft): void {
+    const omo = draft.target === "omo";
+    hasOmoTarget = omo;
+    tabModels.hidden = !omo;
+    const selected: EditorTab =
+      state.tab === "models" && !omo ? "edit" : state.tab;
+    currentTab = selected;
+    const editSelected = selected === "edit";
+    const diffSelected = selected === "diff";
+    const modelsSelected = selected === "models";
+    tabModels.setAttribute("aria-selected", String(modelsSelected));
     tabEdit.setAttribute("aria-selected", String(editSelected));
-    tabDiff.setAttribute("aria-selected", String(!editSelected));
+    tabDiff.setAttribute("aria-selected", String(diffSelected));
+    tabModels.tabIndex = modelsSelected ? 0 : -1;
     tabEdit.tabIndex = editSelected ? 0 : -1;
-    tabDiff.tabIndex = editSelected ? -1 : 0;
+    tabDiff.tabIndex = diffSelected ? 0 : -1;
+    modelsPanel.hidden = !modelsSelected;
     editPanel.hidden = !editSelected;
-    diffPanel.hidden = editSelected;
-    if (!editSelected) {
+    diffPanel.hidden = !diffSelected;
+    if (diffSelected) {
       diffView.update(state);
+    }
+    if (modelsSelected) {
+      modelPanel.update(state, draft);
     }
   }
 
@@ -151,7 +243,7 @@ export function createEditor(handlers: AppHandlers): EditorView {
       lastToken = state.selectionToken;
     }
     headerView.update(state, draft);
-    syncTabs(state);
+    syncTabs(state, draft);
     statusView.update(state, draft);
     textarea.setAttribute("aria-invalid", String(state.jsonError !== null));
     editorElement.setAttribute("aria-busy", String(busy));

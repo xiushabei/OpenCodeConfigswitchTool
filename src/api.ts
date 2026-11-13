@@ -2,9 +2,12 @@ import {
   parseApplyResult,
   parseExportPath,
   parseImportContent,
+  parseModelCatalogue,
+  parsePatchedContent,
   parseSnapshot,
 } from "./guards";
 import { invokeCommand } from "./tauri";
+import type { ModelCatalogue, OmoSection } from "./models/types";
 import type { ApplyResult, Preset, Settings, Snapshot } from "./types";
 
 const COMMANDS = {
@@ -18,6 +21,8 @@ const COMMANDS = {
   importCurrentConfigs: "import_current_configs",
   readImportFile: "read_import_file",
   normalizeImportContent: "normalize_import_content",
+  listModels: "list_models",
+  patchOmoModel: "patch_omo_model",
 } as const;
 
 export async function fetchSnapshot(): Promise<Snapshot> {
@@ -69,5 +74,29 @@ export async function normalizeImportContentCommand(
 ): Promise<string> {
   return parseImportContent(
     await invokeCommand(COMMANDS.normalizeImportContent, { content }),
+  );
+}
+
+export async function listModelsCommand(
+  refresh: boolean,
+): Promise<ModelCatalogue> {
+  return parseModelCatalogue(
+    await invokeCommand(COMMANDS.listModels, { refresh }),
+  );
+}
+
+export async function patchOmoModelCommand(
+  content: string,
+  section: OmoSection,
+  key: string,
+  model: string | null,
+): Promise<string> {
+  return parsePatchedContent(
+    await invokeCommand(COMMANDS.patchOmoModel, {
+      content,
+      section,
+      key,
+      model,
+    }),
   );
 }

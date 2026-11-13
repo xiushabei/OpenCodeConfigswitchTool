@@ -1,4 +1,5 @@
 export {
+  bumpSelectionToken,
   dismissBanner,
   loadSnapshot,
   revertDraft,
@@ -19,3 +20,4 @@ export { importFiles, importPaths } from "./actions/import";
 export { importCurrentConfigs } from "./actions/current";
 export { restoreStartup } from "./actions/startup";
 export { persistSettings } from "./actions/settings";
+export { patchOmoModelField } from "./actions/models";

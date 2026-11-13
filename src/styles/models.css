@@ -1,0 +1,301 @@
+/* ---------- Model catalogue dialog ---------- */
+
+.dialog--models {
+  inline-size: min(760px, calc(100vw - var(--space-8)));
+}
+
+.dialog--model-gate {
+  inline-size: min(520px, calc(100vw - var(--space-8)));
+}
+
+.model-gate__state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.model-gate__status {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  overflow-wrap: anywhere;
+}
+
+.model-gate__track {
+  overflow: hidden;
+  block-size: var(--space-1);
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-surface-container-highest);
+}
+
+.model-gate__bar {
+  inline-size: 40%;
+  block-size: 100%;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-primary);
+  animation: model-gate-slide 1100ms linear infinite;
+}
+
+@keyframes model-gate-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-gate__bar {
+    inline-size: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.model-scope__path {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--md-sys-color-on-surface);
+  overflow-wrap: anywhere;
+}
+
+.model-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px auto;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.model-status {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  overflow-wrap: anywhere;
+}
+
+.model-status[data-tone="error"] {
+  color: var(--md-sys-color-error);
+}
+
+.model-list {
+  /* non-obvious: without flex:none this item shrinks and clips rows instead of letting .dialog__body scroll */
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-md);
+  overflow: hidden;
+}
+
+.model-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.model-entry + .model-entry {
+  border-block-start: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.model-entry__id {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-list__empty {
+  padding: var(--space-6) var(--space-4);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .model-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .model-tools .btn {
+    justify-self: start;
+  }
+
+  .model-entry {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+/* ---------- OMO model assignment panel ---------- */
+
+.model-panel {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-block: var(--space-1) var(--space-4);
+}
+
+.model-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.model-panel__title {
+  font-size: var(--type-title-medium-size);
+  line-height: var(--type-title-medium-line);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-medium);
+}
+
+.model-panel__hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  max-inline-size: 68ch;
+  overflow-wrap: anywhere;
+}
+
+.model-panel__error-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.model-panel__error {
+  color: var(--md-sys-color-error);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  overflow-wrap: anywhere;
+}
+
+.model-panel__error-box .model-panel__error {
+  color: inherit;
+}
+
+.model-panel__status {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  overflow-wrap: anywhere;
+}
+
+.model-panel__empty {
+  padding: var(--space-4);
+  border-radius: var(--shape-md);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+}
+
+.model-panel__note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line);
+  overflow-wrap: anywhere;
+}
+
+.model-panel__note[data-tone="error"] {
+  color: var(--md-sys-color-error);
+}
+
+.model-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--shape-md);
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.model-row__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.model-row__key {
+  font-size: var(--type-title-small-size);
+  line-height: var(--type-title-small-line);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-medium);
+  overflow-wrap: anywhere;
+}
+
+.model-row__path {
+  color: var(--md-sys-color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.model-row__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.model-row__controls .select-wrap {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.model-panel__add-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.model-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-surface-container);
+}
+
+.model-add .field {
+  flex: 1 1 180px;
+}
+
+.model-add .field:first-child {
+  flex: 0 1 140px;
+}
+
+.model-add .btn {
+  flex: none;
+}
+
+@media (max-width: 820px) {
+  .model-add .field,
+  .model-add .field:first-child {
+    flex-basis: 100%;
+  }
+
+  .model-add .btn {
+    justify-self: start;
+  }
+}

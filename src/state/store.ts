@@ -1,7 +1,7 @@
 import type { Draft, Snapshot, Target } from "../types";
 
 export type AppStatus = "loading" | "ready" | "desktop-required" | "error";
-export type EditorTab = "edit" | "diff";
+export type EditorTab = "edit" | "models" | "diff";
 export type Filter = "all" | Target;
 export type BusyAction =
   | "refresh"

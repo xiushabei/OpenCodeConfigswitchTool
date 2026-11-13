@@ -114,7 +114,18 @@ export function updateDraft(patch: Partial<Draft>): void {
       patch.content === undefined
         ? state.jsonError
         : jsonErrorFor(patch.content),
+    tab:
+      patch.target !== undefined &&
+      patch.target !== "omo" &&
+      state.tab === "models"
+        ? "edit"
+        : state.tab,
   });
+}
+
+export function bumpSelectionToken(): void {
+  const state = getState();
+  setState({ selectionToken: state.selectionToken + 1 });
 }
 
 export function setFilter(filter: Filter): void {
