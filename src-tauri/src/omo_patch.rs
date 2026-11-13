@@ -2,8 +2,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::AppError;
+use crate::jsonc;
 
 const MODEL_FIELD: &str = "model";
+const WRAPPER_KEY: &str = "[opencode]";
 const BLOCKED_KEYS: [&str; 3] = ["__proto__", "prototype", "constructor"];
 
 /// The only OMO sections that hold documented model assignments.
@@ -23,16 +25,18 @@ impl Section {
     }
 }
 
-/// Edits exactly one `section.key.model` assignment in OMO JSON text.
+/// Edits exactly one `section.key.model` assignment in OMO JSON/JSONC text.
 ///
-/// `Some(model)` sets the override, `None` removes only the `model` field. Unknown fields, key
-/// order, strings, and numeric values (including integers beyond 2^53) survive because the whole
-/// document is parsed once and re-serialized. Nothing is written to disk.
+/// When the `[opencode]` wrapper object is present, the assignment is edited inside it; otherwise
+/// the flat legacy root is used. `Some(model)` sets the override, `None` removes only the `model`
+/// field. Comments, trailing commas, unknown fields, key order, strings, and numeric values
+/// (including integers beyond 2^53) survive because the whole document is parsed once and
+/// re-serialized. Nothing is written to disk.
 ///
 /// # Errors
 ///
-/// Returns [`AppError::OmoPatchInvalid`] when the content is not a JSON object, the section or
-/// entry has the wrong type, or the key/model is empty or prototype-sensitive.
+/// Returns [`AppError::OmoPatchInvalid`] when the content is not a JSON/JSONC object, the wrapper,
+/// section, or entry has the wrong type, or the key/model is empty or prototype-sensitive.
 pub fn patch(
     content: &str,
     section: Section,
@@ -57,13 +61,24 @@ pub fn patch(
         return Err(invalid("模型 ID 不能为空；清除请使用 null。"));
     }
 
-    let mut root: Value = serde_json::from_str(content)
-        .map_err(|err| invalid(format!("内容不是有效 JSON：{err}")))?;
+    let mut root = jsonc::parse_object(content)
+        .map_err(|reason| invalid(format!("内容不是有效 JSON/JSONC 对象：{reason}")))?;
     let Value::Object(root_map) = &mut root else {
         return Err(invalid("配置根必须是 JSON 对象。"));
     };
+    let has_wrapper = root_map.contains_key(WRAPPER_KEY);
+    let host = if has_wrapper {
+        match root_map.get_mut(WRAPPER_KEY) {
+            Some(Value::Object(wrapper)) => wrapper,
+            Some(_) | None => {
+                return Err(invalid(format!("{WRAPPER_KEY} 必须是 JSON 对象。")));
+            }
+        }
+    } else {
+        root_map
+    };
     let section_name = section.key();
-    let section_value = root_map
+    let section_value = host
         .entry(section_name)
         .or_insert_with(|| Value::Object(Map::new()));
     let Value::Object(entries) = section_value else {

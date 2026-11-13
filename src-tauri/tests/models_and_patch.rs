@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 use switcher_core::models::{parse_output, sanitize_diagnostic};
 use switcher_core::omo_patch::{patch, Section};
+use switcher_core::AppError;
 
 fn parse(output: &str) -> Value {
     serde_json::from_str(output).expect("patched content is JSON")
@@ -148,4 +149,67 @@ fn patch_rejects_empty_prototype_and_blank_model_values() {
     }
     assert!(patch("{}", Section::Agents, "build", Some("   ")).is_err());
     assert!(patch("{}", Section::Categories, "fast", Some("")).is_err());
+}
+
+#[test]
+fn patch_edits_opencode_wrapper_and_preserves_root_metadata_and_big_integers() {
+    let input = r#"{
+        "$schema": "root-schema",
+        "_migrations": {"version": 3, "huge": 123456789012345678901234567890},
+        "[opencode]": {
+            "$schema": "wrapper-schema",
+            "agents": {
+                "build": {
+                    "model": "old/model",
+                    "budget": 9007199254740993,
+                },
+            },
+            "categories": {"fast": {"model": "a/b"}},
+            "extra": {"keep": true},
+        },
+    }"#;
+    let output =
+        patch(input, Section::Agents, "build", Some("new/model")).expect("patch wrapped OMO");
+
+    assert!(output.contains("123456789012345678901234567890"));
+    assert!(output.contains("9007199254740993"));
+    let value = parse(&output);
+    assert_eq!(value["$schema"], json!("root-schema"));
+    assert_eq!(value["_migrations"]["version"], json!(3));
+    assert_eq!(value["[opencode]"]["$schema"], json!("wrapper-schema"));
+    assert_eq!(
+        value["[opencode]"]["agents"]["build"]["model"],
+        json!("new/model")
+    );
+    assert_eq!(
+        value["[opencode]"]["categories"]["fast"]["model"],
+        json!("a/b")
+    );
+    assert_eq!(value["[opencode]"]["extra"]["keep"], json!(true));
+    assert!(value.get("agents").is_none());
+}
+
+#[test]
+fn patch_accepts_jsonc_wrapper_and_rejects_non_object_wrapper() {
+    let input = r#"{
+        // wrapper config
+        "[opencode]": {
+            "agents": {"build": {"model": "old/model",},},
+        },
+    }"#;
+    let output =
+        patch(input, Section::Agents, "build", Some("new/model")).expect("patch JSONC wrapper");
+    assert_eq!(
+        parse(&output)["[opencode]"]["agents"]["build"]["model"],
+        json!("new/model")
+    );
+
+    let error = patch(
+        r#"{"[opencode]": []}"#,
+        Section::Agents,
+        "build",
+        Some("new/model"),
+    )
+    .expect_err("non-object wrapper rejected");
+    assert!(matches!(error, AppError::OmoPatchInvalid { .. }), "{error}");
 }
