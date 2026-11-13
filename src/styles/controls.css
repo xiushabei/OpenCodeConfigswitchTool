@@ -193,6 +193,70 @@ legend.field__label {
   overflow-wrap: anywhere;
 }
 
+/* ---------- Switch ---------- */
+
+.switch__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--control-height);
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--type-body-medium-size);
+  line-height: var(--type-body-medium-line);
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  inline-size: 52px;
+  block-size: 32px;
+  margin: 0;
+  border: 2px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-full);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--easing-standard),
+    border-color var(--duration-micro) var(--easing-standard);
+}
+
+.switch::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 6px;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-outline);
+  transform: translateY(-50%);
+  transition:
+    transform var(--duration-standard) var(--easing-standard),
+    background-color var(--duration-micro) var(--easing-standard);
+}
+
+.switch:checked {
+  border-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-primary);
+}
+
+.switch:checked::before {
+  background: var(--md-sys-color-on-primary);
+  transform: translate(22px, -50%);
+}
+
+.switch:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.switch:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+
 
 .select-wrap {
   position: relative;

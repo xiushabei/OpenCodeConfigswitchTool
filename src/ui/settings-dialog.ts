@@ -2,6 +2,7 @@ import { isTheme, type Settings } from "../types";
 import { icon } from "../icons/icons";
 import { button, iconButton } from "./controls";
 import { create } from "./dom";
+import { createSoundField } from "./sound-field";
 
 export interface SettingsDialogView {
   element: HTMLDialogElement;
@@ -49,6 +50,8 @@ export function createSettingsDialog(
     ]),
   ]);
 
+  const soundField = createSoundField();
+
   const themeFieldset = create("fieldset", "field field--plain");
   const legend = create("legend", "field__label", ["主题"]);
   const themeChoice = create("div", "theme-choice");
@@ -95,6 +98,7 @@ export function createSettingsDialog(
       opencodeField,
       omoField,
       themeFieldset,
+      soundField.element,
       errorLine,
     ]),
     actions,
@@ -131,6 +135,7 @@ export function createSettingsDialog(
     for (const input of themeInputs.values()) {
       input.disabled = next;
     }
+    soundField.setDisabled(next);
     save.disabled = next;
     cancel.disabled = next;
     close.disabled = next;
@@ -201,6 +206,7 @@ export function createSettingsDialog(
     for (const [value, input] of themeInputs) {
       input.checked = value === settings.theme;
     }
+    soundField.sync();
     opener =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
