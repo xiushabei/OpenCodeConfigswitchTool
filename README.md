@@ -30,7 +30,7 @@ bun run build
 bun run tauri build
 ```
 
-Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 80 项 Rust 测试、严格 Clippy、前端构建与真实桌面操作验证。
+Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 89 项 Rust 测试、10 项 Bun 测试、严格 Clippy、前端构建与真实桌面操作验证。
 
 单独运行 `bun run dev` 只提供浏览器界面预览；配置文件操作需要 Tauri 桌面环境。
 
