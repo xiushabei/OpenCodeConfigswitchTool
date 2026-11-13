@@ -1,0 +1,166 @@
+/*
+ * MD3 baseline roles (Material Web v0.192) + project extensions.
+ * Only this file may contain raw colour values.
+ */
+
+:root {
+  color-scheme: light;
+
+  --md-sys-color-primary: #6750a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eaddff;
+  --md-sys-color-on-primary-container: #21005d;
+  --md-sys-color-secondary: #625b71;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e8def8;
+  --md-sys-color-on-secondary-container: #1d192b;
+  --md-sys-color-tertiary: #7d5260;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #ffd8e4;
+  --md-sys-color-on-tertiary-container: #31111d;
+  --md-sys-color-error: #b3261e;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #f9dedc;
+  --md-sys-color-on-error-container: #410e0b;
+  --md-sys-color-surface: #fef7ff;
+  --md-sys-color-on-surface: #1d1b20;
+  --md-sys-color-surface-variant: #e7e0ec;
+  --md-sys-color-on-surface-variant: #49454f;
+  --md-sys-color-surface-dim: #ded8e1;
+  --md-sys-color-surface-bright: #fef7ff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f7f2fa;
+  --md-sys-color-surface-container: #f3edf7;
+  --md-sys-color-surface-container-high: #ece6f0;
+  --md-sys-color-surface-container-highest: #e6e0e9;
+  --md-sys-color-outline: #79747e;
+  --md-sys-color-outline-variant: #cac4d0;
+  --md-sys-color-inverse-surface: #322f35;
+  --md-sys-color-inverse-on-surface: #f5eff7;
+  --md-sys-color-inverse-primary: #d0bcff;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+
+  --app-color-success: #386a20;
+  --app-color-success-container: #d7f0c2;
+  --app-color-on-success-container: #0c1f00;
+  --app-color-diff-add-bg: #e6f4e0;
+  --app-color-diff-add-ink: #24520c;
+
+  --state-hover-opacity: 0.08;
+  --state-focus-opacity: 0.1;
+  --state-pressed-opacity: 0.1;
+  --disabled-opacity: 0.38;
+
+  --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --scrim-opacity: 0.32;
+
+  --type-headline-small-size: 24px;
+  --type-headline-small-line: 32px;
+  --type-title-large-size: 22px;
+  --type-title-large-line: 28px;
+  --type-title-medium-size: 16px;
+  --type-title-medium-line: 24px;
+  --type-title-small-size: 14px;
+  --type-title-small-line: 20px;
+  --type-body-large-size: 16px;
+  --type-body-large-line: 24px;
+  --type-body-medium-size: 14px;
+  --type-body-medium-line: 20px;
+  --type-body-small-size: 12px;
+  --type-body-small-line: 16px;
+  --type-label-large-size: 14px;
+  --type-label-large-line: 20px;
+  --type-label-medium-size: 12px;
+  --type-label-medium-line: 16px;
+  --type-label-small-size: 11px;
+  --type-label-small-line: 16px;
+
+  --type-tracking-none: 0;
+  --type-tracking-medium: 0.15px;
+  --type-tracking-small: 0.25px;
+  --type-tracking-label: 0.5px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --shape-xs: 4px;
+  --shape-sm: 8px;
+  --shape-md: 12px;
+  --shape-lg: 16px;
+  --shape-xl: 28px;
+  --shape-full: 999px;
+
+  --duration-micro: 100ms;
+  --duration-standard: 200ms;
+  --duration-emphasis: 300ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasis: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui,
+    "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", Consolas,
+    "Microsoft YaHei UI", "Microsoft YaHei", monospace;
+
+  --rail-width: 320px;
+  --top-bar-height: 64px;
+  --status-bar-height: 40px;
+  --icon-hit-size: 44px;
+  --control-height: 40px;
+
+  --z-progress: 20;
+  --z-drop-overlay: 30;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+  --md-sys-color-secondary: #ccc2dc;
+  --md-sys-color-on-secondary: #332d41;
+  --md-sys-color-secondary-container: #4a4458;
+  --md-sys-color-on-secondary-container: #e8def8;
+  --md-sys-color-tertiary: #efb8c8;
+  --md-sys-color-on-tertiary: #492532;
+  --md-sys-color-tertiary-container: #633b48;
+  --md-sys-color-on-tertiary-container: #ffd8e4;
+  --md-sys-color-error: #f2b8b5;
+  --md-sys-color-on-error: #601410;
+  --md-sys-color-error-container: #8c1d18;
+  --md-sys-color-on-error-container: #f9dedc;
+  --md-sys-color-surface: #141218;
+  --md-sys-color-on-surface: #e6e0e9;
+  --md-sys-color-surface-variant: #49454f;
+  --md-sys-color-on-surface-variant: #cac4d0;
+  --md-sys-color-surface-dim: #141218;
+  --md-sys-color-surface-bright: #3b383e;
+  --md-sys-color-surface-container-lowest: #0f0d13;
+  --md-sys-color-surface-container-low: #1d1b20;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-surface-container-highest: #36343b;
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454f;
+  --md-sys-color-inverse-surface: #e6e0e9;
+  --md-sys-color-inverse-on-surface: #322f35;
+  --md-sys-color-inverse-primary: #6750a4;
+
+  --app-color-success: #b1d18a;
+  --app-color-success-container: #2c4a16;
+  --app-color-on-success-container: #c8e6ad;
+  --app-color-diff-add-bg: #1e3312;
+  --app-color-diff-add-ink: #c8e6ad;
+
+  --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --scrim-opacity: 0.5;
+}

@@ -1,0 +1,185 @@
+/* ---------- Segmented filter ---------- */
+
+.segmented {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-full);
+  overflow: hidden;
+}
+
+.segmented__item {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-inline-size: max-content;
+  min-block-size: 38px;
+  padding-inline: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--type-label-medium-size);
+  line-height: var(--type-label-medium-line);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-none);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.segmented__item + .segmented__item {
+  border-inline-start: 1px solid var(--md-sys-color-outline);
+}
+
+.segmented__item[aria-pressed="true"] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.segmented__item:focus-visible {
+  outline-offset: -3px;
+}
+
+.segmented__check {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--space-2);
+  display: none;
+  place-items: center;
+  inline-size: 12px;
+  block-size: 12px;
+  transform: translateY(-50%);
+}
+
+.segmented__item[aria-pressed="true"] .segmented__check {
+  display: inline-grid;
+}
+
+.segmented__count {
+  color: inherit;
+  font-size: var(--type-label-small-size);
+  line-height: var(--type-label-small-line);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* ---------- Tabs ---------- */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  align-self: flex-start;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-surface-container);
+}
+
+.tab {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 36px;
+  padding-inline: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--shape-full);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-label-large-size);
+  line-height: var(--type-label-large-line);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-label);
+  overflow: hidden;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--type-label-small-size);
+  line-height: var(--type-label-small-line);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-label);
+  white-space: nowrap;
+}
+
+.badge--active {
+  background: var(--app-color-success-container);
+  color: var(--app-color-on-success-container);
+}
+
+.badge--dirty {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.badge--error {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.badge--target {
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* ---------- Theme choice ---------- */
+
+.theme-choice {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.theme-choice__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-full);
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--type-label-large-size);
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-label);
+  cursor: pointer;
+}
+
+.theme-choice__option:hover {
+  border-color: var(--md-sys-color-on-surface);
+}
+
+.theme-choice__option:has(input:checked) {
+  background: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.theme-choice__option:has(input:focus-visible) {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.theme-choice__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}

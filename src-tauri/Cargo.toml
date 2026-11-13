@@ -1,0 +1,30 @@
+[package]
+name = "omo-config-switcher"
+version = "0.1.0"
+description = "Windows preset switcher for OpenCode configuration files"
+edition = "2021"
+rust-version = "1.77"
+publish = false
+
+[lib]
+name = "switcher_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "omo-config-switcher"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
