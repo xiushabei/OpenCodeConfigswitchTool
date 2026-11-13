@@ -1,8 +1,14 @@
 # OMO 配置切换器
 
+[简体中文](README.md) | [English](README.en.md)
+
 Windows Tauri 2 桌面应用，分别管理 OpenCode 和 oh-my-openagent 的 JSON 配置预设。界面采用 Material Design 3 配色、组件状态和 Material Symbols 图标，支持浅色、深色和跟随系统。
 
-本轮新版程序：`src-tauri/target/current-import/release/omo-config-switcher.exe`，可直接双击启动。旧目录中的 EXE 可能仍是早期版本，请使用此路径。它会向上查找项目根目录的 `switcher.settings.json`，无需复制到系统目录。发布版不会弹出命令行窗口，界面禁用浏览器右键菜单，复制/粘贴键盘快捷键仍可使用。
+## 下载运行
+
+从 [GitHub Releases](https://github.com/xiushabei/OpenCodeConfigswitchTool/releases/latest) 下载 Windows x64 便携 ZIP，解压到可写目录，双击 `omo-config-switcher.exe`。请将包内的 `switcher.settings.json` 保留在 EXE 同目录。需要 Microsoft Edge WebView2 Runtime，Windows 11 通常已安装；首次启动前可编辑设置文件里的目标路径。
+
+发布版不会弹出命令行窗口，界面禁用浏览器右键菜单，复制/粘贴键盘快捷键仍可使用。当前应用界面为中文，提供中英文使用说明。
 
 ## 启动
 
@@ -22,7 +28,7 @@ bun run build
 bun run tauri build
 ```
 
-Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。本轮发布构建、45 项 Rust 测试、严格 Clippy 检查及真实 Tauri 窗口的启动导入、文件添加、二次确认还原均已通过；截图与记录在 `evidence/startup/`。
+Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 50 项 Rust 测试、严格 Clippy、前端构建与真实桌面操作验证。
 
 单独运行 `bun run dev` 只提供浏览器界面预览；配置文件操作需要 Tauri 桌面环境。
 
@@ -74,3 +80,7 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 写入成功表示配置文件已更新。正在运行的 OpenCode 会话可能仍使用启动时加载的配置；退出并重新启动 OpenCode，再确认目标模型或其他已修改设置。不要用当前会话的行为判断文件是否写入成功。
 
 程序仅检查 JSON 对象的语法，不会臆测或改写 OpenCode / OMO 字段。字段含义与版本兼容性请参考 [OpenCode 配置文档](https://opencode.ai/docs/config/) 和 [oh-my-openagent 官方仓库](https://github.com/code-yeongyu/oh-my-openagent)。
+
+## 许可证
+
+[Apache License 2.0](LICENSE)。
