@@ -1,0 +1,7 @@
+{
+  "targets": {
+    "opencode": "~/.config/opencode/opencode.json",
+    "omo": "~/.config/opencode/oh-my-openagent.json"
+  },
+  "theme": "system"
+}
