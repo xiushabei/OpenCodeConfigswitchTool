@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 /// Parses JSONC (comments, trailing commas, optional BOM) and requires a top-level object.
 ///
@@ -19,6 +19,105 @@ pub fn parse_object(text: &str) -> Result<Value, String> {
 #[must_use]
 pub fn is_strict_object(text: &str) -> bool {
     matches!(serde_json::from_str::<Value>(text), Ok(Value::Object(_)))
+}
+
+/// Compares two JSON/JSONC object texts structurally.
+///
+/// Invalid JSON or non-object text never compares equal, even when the raw bytes match. Valid
+/// objects ignore comments, a BOM, trailing commas, CRLF line endings, and object key order.
+/// Array order, value types, and numeric values remain significant. Numbers compare by exact
+/// decimal value without an `f64` round-trip, so `1` equals `1.0` and integers beyond `f64`
+/// precision stay distinct.
+#[must_use]
+pub fn objects_equal(left: &str, right: &str) -> bool {
+    match (parse_object(left), parse_object(right)) {
+        (Ok(left), Ok(right)) => values_equal(&left, &right),
+        _ => false,
+    }
+}
+
+fn values_equal(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Object(left), Value::Object(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|(key, value)| {
+                    right
+                        .get(key)
+                        .is_some_and(|other| values_equal(value, other))
+                })
+        }
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| values_equal(left, right))
+        }
+        (Value::Number(left), Value::Number(right)) => numbers_equal(left, right),
+        _ => left == right,
+    }
+}
+
+fn numbers_equal(left: &Number, right: &Number) -> bool {
+    if left == right {
+        return true;
+    }
+    match (
+        canonical_decimal(&left.to_string()),
+        canonical_decimal(&right.to_string()),
+    ) {
+        (Some(left), Some(right)) => left == right,
+        _ => false,
+    }
+}
+
+#[derive(PartialEq, Eq)]
+struct CanonicalNumber {
+    negative: bool,
+    digits: String,
+    exponent: i64,
+}
+
+/// Normalizes one JSON number token to `sign * digits * 10^exponent`.
+///
+/// Returns `None` when the exponent does not fit `i64`; such numbers still compare equal only
+/// when their raw tokens are identical.
+fn canonical_decimal(raw: &str) -> Option<CanonicalNumber> {
+    let (negative, body) = match raw.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, raw),
+    };
+    let (mantissa, exponent) = match body.find(['e', 'E']) {
+        Some(index) => (
+            body.get(..index)?,
+            body.get(index + 1..)?.parse::<i64>().ok()?,
+        ),
+        None => (body, 0),
+    };
+    let (integer, fraction) = match mantissa.split_once('.') {
+        Some((integer, fraction)) => (integer, fraction),
+        None => (mantissa, ""),
+    };
+    let combined = format!("{integer}{fraction}");
+    let Some(first_nonzero) = combined.find(|ch| ch != '0') else {
+        return Some(CanonicalNumber {
+            negative: false,
+            digits: "0".to_string(),
+            exponent: 0,
+        });
+    };
+    let mut digits = combined.get(first_nonzero..)?.to_string();
+    let fraction_len = i64::try_from(fraction.len()).ok()?;
+    let mut exponent = exponent.checked_sub(fraction_len)?;
+    while digits.ends_with('0') {
+        digits.pop();
+        exponent = exponent.checked_add(1)?;
+    }
+    Some(CanonicalNumber {
+        negative,
+        digits,
+        exponent,
+    })
 }
 
 /// Serializes a value as pretty strict JSON with a trailing newline.
@@ -131,7 +230,7 @@ fn strip_trailing_commas(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_strict_object, normalize_object, parse_object};
+    use super::{is_strict_object, normalize_object, objects_equal, parse_object};
 
     #[test]
     fn comments_and_trailing_commas_parse_as_object() {
@@ -174,5 +273,47 @@ mod tests {
         let value = parse_object("{\n  /* key */ \"a\" // colon\n  : /* value */ 1,\n}")
             .expect("valid JSONC");
         assert_eq!(value["a"], 1);
+    }
+
+    #[test]
+    fn structural_equality_ignores_formatting_comments_and_key_order() {
+        let left = "\u{feff}{\r\n  // actual\r\n  \"b\": 2,\r\n  \"a\": [1, 2,],\r\n}\r\n";
+        let right = "{\"a\":[1,2],\"b\":2}";
+        assert!(objects_equal(left, right));
+    }
+
+    #[test]
+    fn structural_equality_keeps_types_array_order_and_big_integers_significant() {
+        assert!(!objects_equal(r#"{"a":1}"#, r#"{"a":"1"}"#));
+        assert!(!objects_equal(r#"{"a":[1,2]}"#, r#"{"a":[2,1]}"#));
+        assert!(objects_equal(
+            r#"{"n":9007199254740993}"#,
+            r#"{"n":9007199254740993}"#
+        ));
+        assert!(!objects_equal(
+            r#"{"n":9007199254740993}"#,
+            r#"{"n":9007199254740992}"#
+        ));
+    }
+
+    #[test]
+    fn numeric_equality_is_exact_decimal_not_f64() {
+        assert!(objects_equal(r#"{"n":1}"#, r#"{"n":1.0}"#));
+        assert!(objects_equal(r#"{"n":1.20}"#, r#"{"n":1.2}"#));
+        assert!(objects_equal(r#"{"n":1e2}"#, r#"{"n":100}"#));
+        assert!(objects_equal(r#"{"n":-0}"#, r#"{"n":0}"#));
+        assert!(objects_equal(
+            r#"{"n":9007199254740993}"#,
+            r#"{"n":9007199254740993.0}"#
+        ));
+        assert!(!objects_equal(r#"{"n":1}"#, r#"{"n":1e400}"#));
+    }
+
+    #[test]
+    fn invalid_json_never_compares_equal_even_with_identical_bytes() {
+        assert!(!objects_equal("{broken", "{broken"));
+        assert!(!objects_equal("[]", "[]"));
+        assert!(!objects_equal("[]", "{}"));
+        assert!(!objects_equal("{broken", "{\"a\":1}"));
     }
 }

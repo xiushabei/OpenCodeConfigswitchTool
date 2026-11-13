@@ -3,7 +3,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 use crate::model::{Preset, Settings, Target, TargetState};
-use crate::paths;
+use crate::{jsonc, paths};
 
 /// Reads the current state of one configured target file.
 #[must_use]
@@ -55,16 +55,21 @@ fn error_state(target: Target, path: &str, error: String) -> TargetState {
     }
 }
 
-/// Marks presets whose stored content matches the target file exactly.
+/// Marks presets whose content is structurally equivalent to the target file.
+///
+/// JSONC comments, trailing commas, CRLF, and object key order do not prevent a match. Invalid
+/// target text never marks a preset active, even when the raw text is identical.
 pub fn mark_active(states: &mut [TargetState], presets: &[Preset]) {
     for state in states.iter_mut() {
-        state.active_preset_ids = presets
-            .iter()
-            .filter(|preset| {
-                preset.target == state.target
-                    && state.content.as_deref() == Some(preset.content.as_str())
-            })
-            .map(|preset| preset.id.clone())
-            .collect();
+        let target = state.target;
+        let active: Vec<String> = state.content.as_deref().map_or_else(Vec::new, |content| {
+            presets
+                .iter()
+                .filter(|preset| preset.target == target)
+                .filter(|preset| jsonc::objects_equal(&preset.content, content))
+                .map(|preset| preset.id.clone())
+                .collect()
+        });
+        state.active_preset_ids = active;
     }
 }

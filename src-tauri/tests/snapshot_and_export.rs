@@ -4,7 +4,7 @@ use support::{preset, TestRoot};
 use switcher_core::{AppError, Target};
 
 #[test]
-fn snapshot_marks_active_only_when_target_content_matches_exactly() {
+fn snapshot_marks_active_for_structurally_equivalent_presets() {
     let root = TestRoot::new("snapshot-active");
     root.seed_settings("targets/opencode.json", "targets/omo.json", "system");
     let content = "{\n  \"model\": \"one\"\n}\n";
@@ -17,13 +17,16 @@ fn snapshot_marks_active_only_when_target_content_matches_exactly() {
         .presets[0]
         .id
         .clone();
-    engine
+    let second_id = engine
         .save_preset(preset(
             Target::Opencode,
             "Reformatted",
             "{\"model\":\"one\"}",
         ))
-        .expect("save reformatted");
+        .expect("save reformatted")
+        .presets[1]
+        .id
+        .clone();
 
     let snapshot = engine.snapshot().expect("snapshot");
     let opencode = snapshot
@@ -31,9 +34,110 @@ fn snapshot_marks_active_only_when_target_content_matches_exactly() {
         .iter()
         .find(|state| state.target == Target::Opencode)
         .expect("opencode state");
-    assert_eq!(opencode.active_preset_ids, vec![first_id]);
+    assert_eq!(opencode.active_preset_ids, vec![first_id, second_id]);
     assert_eq!(opencode.content.as_deref(), Some(content));
     assert_eq!(opencode.error, None);
+}
+
+#[test]
+fn snapshot_marks_active_for_jsonc_target_with_comments_crlf_and_reordered_keys() {
+    let root = TestRoot::new("snapshot-jsonc-active");
+    root.seed_settings("targets/opencode.json", "targets/omo.json", "system");
+    let target = "{\r\n  // actual config\r\n  \"b\": 2,\r\n  \"n\": 9007199254740993,\r\n  \"a\": [1, 2,],\r\n}\r\n";
+    root.write("targets/omo.json", target);
+    let engine = root.engine();
+
+    let id = engine
+        .save_preset(preset(
+            Target::Omo,
+            "Current",
+            "{\"a\":[1,2],\"n\":9007199254740993,\"b\":2}",
+        ))
+        .expect("save preset")
+        .presets[0]
+        .id
+        .clone();
+
+    let snapshot = engine.snapshot().expect("snapshot");
+    let omo = snapshot
+        .targets
+        .iter()
+        .find(|state| state.target == Target::Omo)
+        .expect("omo state");
+    assert_eq!(omo.active_preset_ids, vec![id]);
+}
+
+#[test]
+fn snapshot_marks_active_when_numbers_differ_only_in_spelling() {
+    let root = TestRoot::new("snapshot-number-spelling");
+    root.seed_settings("targets/opencode.json", "targets/omo.json", "system");
+    root.write("targets/omo.json", "{\"ratio\":1,\"scale\":100}");
+    let engine = root.engine();
+
+    let id = engine
+        .save_preset(preset(
+            Target::Omo,
+            "Decimal",
+            "{\"ratio\":1.0,\"scale\":1e2}",
+        ))
+        .expect("save decimal preset")
+        .presets[0]
+        .id
+        .clone();
+
+    let snapshot = engine.snapshot().expect("snapshot");
+    let omo = snapshot
+        .targets
+        .iter()
+        .find(|state| state.target == Target::Omo)
+        .expect("omo state");
+    assert_eq!(omo.active_preset_ids, vec![id]);
+}
+
+#[test]
+fn structural_differences_keep_presets_inactive() {
+    let root = TestRoot::new("snapshot-structural-negative");
+    root.seed_settings("targets/opencode.json", "targets/omo.json", "system");
+    root.write(
+        "targets/omo.json",
+        "{\"model\":\"one\",\"budget\":9007199254740993,\"list\":[1,2]}",
+    );
+    let engine = root.engine();
+
+    for (name, content) in [
+        (
+            "String number",
+            "{\"model\":\"one\",\"budget\":\"9007199254740993\",\"list\":[1,2]}",
+        ),
+        (
+            "Rounded big integer",
+            "{\"model\":\"one\",\"budget\":9007199254740992,\"list\":[1,2]}",
+        ),
+        (
+            "Reordered array",
+            "{\"model\":\"one\",\"budget\":9007199254740993,\"list\":[2,1]}",
+        ),
+        (
+            "Changed field",
+            "{\"model\":\"two\",\"budget\":9007199254740993,\"list\":[1,2]}",
+        ),
+    ] {
+        engine
+            .save_preset(preset(Target::Omo, name, content))
+            .expect("save preset");
+    }
+
+    let snapshot = engine.snapshot().expect("snapshot");
+    let omo = snapshot
+        .targets
+        .iter()
+        .find(|state| state.target == Target::Omo)
+        .expect("omo state");
+    assert!(
+        omo.active_preset_ids.is_empty(),
+        "{:?}",
+        omo.active_preset_ids
+    );
 }
 
 #[test]
