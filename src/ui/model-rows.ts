@@ -1,4 +1,5 @@
 import type { CatalogueState } from "../models/catalogue";
+import { assignmentPrefix } from "../models/omo";
 import type { ModelAssignment, OmoSection } from "../models/types";
 import { button } from "./controls";
 import { create } from "./dom";
@@ -16,7 +17,7 @@ export function assignmentRow(
   disabled: boolean,
   onPatch: PatchAssignment,
 ): HTMLElement {
-  const path = `${row.section}.${row.key}`;
+  const path = `${assignmentPrefix(row.section, row.wrapped)}.${row.key}`;
   const select = create("select", "field__control");
   select.setAttribute("aria-label", `${path}.model`);
   select.dataset["path"] = path;

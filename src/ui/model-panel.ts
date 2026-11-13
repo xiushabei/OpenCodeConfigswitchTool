@@ -5,8 +5,8 @@ import {
   getCatalogue,
   subscribeCatalogue,
 } from "../models/catalogue";
-import type { CatalogueState } from "../models/catalogue";
 import {
+  assignmentPrefix,
   lookupAssignment,
   readAssignments,
   validateAssignmentKey,
@@ -28,6 +28,12 @@ export interface ModelPanelView {
 
 export interface ModelPanelOptions {
   onOpenJson(): void;
+}
+
+interface AssignmentEdit {
+  readonly section: OmoSection;
+  readonly key: string;
+  readonly wrapped: boolean;
 }
 
 export function createModelPanel(
@@ -89,8 +95,7 @@ export function createModelPanel(
   }
 
   async function runPatch(
-    section: OmoSection,
-    key: string,
+    edit: AssignmentEdit,
     model: string | null,
   ): Promise<boolean> {
     const state = getState();
@@ -103,6 +108,7 @@ export function createModelPanel(
     ) {
       return false;
     }
+    const path = `${assignmentPrefix(edit.section, edit.wrapped)}.${edit.key}.model`;
     patching = true;
     setMessage("正在更新配置…");
     if (lastState !== null) {
@@ -110,16 +116,12 @@ export function createModelPanel(
     }
     try {
       const outcome: PatchOutcome = await patchOmoModelField(
-        section,
-        key,
+        edit.section,
+        edit.key,
         model,
       );
       if (outcome === "applied") {
-        setMessage(
-          model === null
-            ? `已清除 ${section}.${key}.model。`
-            : `已更新 ${section}.${key}.model。`,
-        );
+        setMessage(model === null ? `已清除 ${path}。` : `已更新 ${path}。`);
         return true;
       }
       setMessage(
@@ -132,13 +134,6 @@ export function createModelPanel(
         render(lastState);
       }
     }
-  }
-
-  function syncCatalogue(
-    catalogue: CatalogueState,
-    disabled: boolean,
-  ): void {
-    addForm.sync(catalogue, disabled);
   }
 
   function render(state: UiState): void {
@@ -184,13 +179,13 @@ export function createModelPanel(
       replaceChildren(
         rows,
         parsed.rows.map((row) =>
-          assignmentRow(row, catalogue, disabled, (section, key, model) => {
-            void runPatch(section, key, model);
+          assignmentRow(row, catalogue, disabled, (_section, _key, model) => {
+            void runPatch(row, model);
           }),
         ),
       );
     }
-    syncCatalogue(catalogue, disabled);
+    addForm.sync(catalogue, disabled);
     setMessage(message);
 
     if (hadFocus && focusedPath !== null) {
@@ -246,7 +241,10 @@ export function createModelPanel(
       return;
     }
     addForm.setError(null);
-    void runPatch(section, key, model).then((applied) => {
+    void runPatch(
+      { section, key, wrapped: lookup.wrapped },
+      model,
+    ).then((applied) => {
       if (applied) {
         addForm.reset();
       }

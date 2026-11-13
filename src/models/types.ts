@@ -17,6 +17,8 @@ export interface ModelAssignment {
   readonly section: OmoSection;
   readonly key: string;
   readonly model: string | null;
+  /** True when the assignment lives under the `[opencode]` wrapper. */
+  readonly wrapped: boolean;
 }
 
 export function isOmoSection(value: string): value is OmoSection {
