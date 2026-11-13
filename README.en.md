@@ -16,6 +16,8 @@ Grab the latest portable Windows x64 build from the [releases page](https://gith
 
 The build is portable: there is no installer and nothing is added to the system PATH.
 
+Click and operation-result sounds can be disabled through the Chinese setting “操作音效”. This preference is saved locally. Typing and startup are silent. Audio assets from [Kenney Interface Sounds](https://kenney.nl/assets/interface-sounds) are bundled for offline playback under CC0; see `src/assets/sounds/ATTRIBUTION.md`.
+
 WebView2 is required. Windows 11 normally has it already; on older systems, install the Evergreen Runtime from Microsoft if the window fails to open.
 
 ## Requirements for building
@@ -125,6 +127,20 @@ After applying, check three things: the active marker highlights the preset, the
 A successful write means the file changed. It does not mean the running OpenCode process picked it up. Quit OpenCode, start it again, and confirm the model or setting you changed. Judging by the current session's behavior will mislead you.
 
 The app validates JSON object syntax only. Field meanings and version compatibility belong to the upstream projects.
+
+## Models and OMO model assignments
+
+The model catalogue runs the installed `opencode models` CLI, using the switcher's root as its working directory and the configured OpenCode target through `OPENCODE_CONFIG`. OpenCode applies its own merged global/project configuration, credentials and plugins. The explicit refresh action runs `opencode models --refresh`.
+
+OMO presets have a model-selection view alongside the raw JSON and diff views. It edits only `agents.<key>.model` and `categories.<key>.model`; unknown fields, key order and large integers are preserved by the Rust patch command. Existing model IDs absent from the catalogue remain selectable as current values.
+
+## Chat history
+
+Chat history opens an existing `opencode.db` read-only and detects supported v1/v2 schemas. It tries `OPENCODE_DB`, `opencode db path`, and the default user path before a one-time bounded drive scan for the exact filename. You can also enter a path. The database area reports its actual file length and lists WAL length separately when present. Sessions share that SQLite file; each session's content volume counts message/part bytes, supports sorting alongside timestamps, and is not guaranteed recoverable disk space. User and assistant text is shown in full. Tool records start as a short summary and short reasoning parts open directly; every shortened record is a native details/summary toggle that reveals the complete text by pointer or keyboard.
+
+A read returns all messages and parts the backend can decode, and the interface does not clip them again. Full reads use memory proportional to session size and can take longer on very large sessions. The interface marks a part as incomplete only when the backend reports that it could not fully parse it; normal collapsed previews are never labelled as truncated.
+
+Deletion requires OpenCode to be fully stopped, a second confirmation of the selected session and descendants, a successful SQLite-consistent backup, and verified schema relationships. Unknown schemas fail closed. Deletion/backup tests use synthetic local databases; the live OpenCode database is never used for destructive development QA.
 
 ## License
 

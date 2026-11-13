@@ -10,6 +10,8 @@ Windows Tauri 2 桌面应用，分别管理 OpenCode 和 oh-my-openagent 的 JSO
 
 发布版不会弹出命令行窗口，界面禁用浏览器右键菜单，复制/粘贴键盘快捷键仍可使用。当前应用界面为中文，提供中英文使用说明。
 
+操作音效可在“设置 → 操作音效”中开关，开关状态在本机保存。点击、成功和失败使用不同的本地音效，编辑文本及启动时不发声。音效素材来自 [Kenney Interface Sounds](https://kenney.nl/assets/interface-sounds)，使用 CC0 许可并随程序离线打包。
+
 ## 启动
 
 需要 Node.js 或 Bun、Rust MSVC 工具链、Microsoft C++ Build Tools（“使用 C++ 的桌面开发”）和 WebView2。Windows 11 通常已有 WebView2。Windows 构建要求以 [Tauri 官方文档](https://v2.tauri.app/start/prerequisites/) 为准。
@@ -28,7 +30,7 @@ bun run build
 bun run tauri build
 ```
 
-Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 50 项 Rust 测试、严格 Clippy、前端构建与真实桌面操作验证。
+Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 80 项 Rust 测试、严格 Clippy、前端构建与真实桌面操作验证。
 
 单独运行 `bun run dev` 只提供浏览器界面预览；配置文件操作需要 Tauri 桌面环境。
 
@@ -80,6 +82,24 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 写入成功表示配置文件已更新。正在运行的 OpenCode 会话可能仍使用启动时加载的配置；退出并重新启动 OpenCode，再确认目标模型或其他已修改设置。不要用当前会话的行为判断文件是否写入成功。
 
 程序仅检查 JSON 对象的语法，不会臆测或改写 OpenCode / OMO 字段。字段含义与版本兼容性请参考 [OpenCode 配置文档](https://opencode.ai/docs/config/) 和 [oh-my-openagent 官方仓库](https://github.com/code-yeongyu/oh-my-openagent)。
+
+## 模型列表与 OMO 模型选择
+
+“模型列表”读取本机 OpenCode CLI 的 `opencode models` 输出，因此列表包含 OpenCode 合并后的可用提供商与模型，而不是直接下载 models.dev 目录。需要先安装 OpenCode CLI 并使其可从 PATH 运行。“刷新模型缓存”显式执行 `opencode models --refresh`，可能需要联网。
+
+读取时以切换器项目根目录为工作目录，并通过 `OPENCODE_CONFIG` 指向设置中的 OpenCode 目标文件；OpenCode 自身的全局配置、项目配置、凭据和插件仍按其规则参与合并。模型列表对应当前磁盘配置，不会为了预览自动应用未保存的预设。可按提供商和模型 ID 筛选，界面显示读取目录。
+
+OMO 预设提供“模型选择”和原始 JSON 编辑方式。模型选择只修改 `agents.<名称>.model` 或 `categories.<名称>.model`，保留其他字段；原始 JSON 修改后可切回模型选择查看。当前模型不在目录中时保留原值，不会自动替换。添加条目时填写实际代理或类别名称；字段规则以所用 OpenCode 版 OMO 的文档为准。
+
+## 聊天记录
+
+聊天记录界面从 `opencode.db` 只读解析会话列表与消息，兼容已识别的两代会话表结构。优先读取 `OPENCODE_DB`、`opencode db path` 和默认用户目录；固定位置都未找到时，才进行一次全盘搜索，也可填写数据库路径。搜索会跳过无权限和重解析目录。
+
+数据库区域显示实际文件体积，存在 WAL 时单独列出其体积。会话共用 SQLite 文件，没有独立的会话文件；列表的“内容体积”为会话消息与片段的字节量，支持按内容体积和时间排序，不代表删除后可直接回收的磁盘空间。阅读视图区分正文、思考和工具记录：用户与助手正文默认完整显示；工具记录默认收起为简短摘要，思考记录较短时直接展开，点击摘要或使用键盘均可展开、收回完整内容。
+
+阅读接口返回会话的全部消息与片段，前端不再做二次裁剪。完整读取的内存占用随会话体积增长，超大会话的读取时间取决于数据库大小。仅当后端报告某段数据无法完整解析时，界面标注“解析不完整”；正常折叠的摘要不会被误标为截断。
+
+删除会话前必须完全退出 OpenCode。程序检测到相关进程时会阻止删除；确认框列出本次删除的会话及关联子会话，二次确认后先创建 SQLite 一致性备份，再执行删除事务。无法确认表结构或级联关系时拒绝删除，不自动清理关系不明的 blob。备份保存在切换器的 `backups/` 中。开发验证只使用隔离测试库，不修改正在运行的 OpenCode 会话数据库。
 
 ## 许可证
 

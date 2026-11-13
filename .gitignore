@@ -24,6 +24,8 @@ evidence/
 .task-run/
 .qa-*/
 .build-tools/
+.sound-run/
+.models-run/
 *.log
 
 # Editor and operating-system files

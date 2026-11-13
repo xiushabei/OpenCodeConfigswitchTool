@@ -7,6 +7,7 @@ Windows 桌面工具（Tauri 2 + 原生 TypeScript/CSS）。视觉规范：Mater
 - Embedded refs: 用户指定 Material Design 3 与 Material Symbols，覆盖 skill 默认的 Layer B 品牌技能与 shadcn/Lucide 组件建议，因此不加载品牌参考；执行纪律采用 frontend skill 的 operational brief（`taste-skill` lane 的克制原则）与 `layout-skill.md`（app shell / list-detail / 滚动归属）。
 - MD3 tokens: 采用 Material Web `v0.192` 官方 `_md-sys-color.scss` 与 `_md-ref-palette.scss` 基线值（light/dark 全角色），非模型记忆值。
 - Material Symbols: 官方 `google/material-design-icons/symbols/web/<name>/materialsymbolsoutlined/*_24px.svg` 路径数据，落地在 `src/icons/paths.ts` 并以内联 SVG 渲染，无字体、无 CDN、无运行时网络。
+- Interface sounds: Kenney [Interface Sounds 1.0](https://kenney.nl/assets/interface-sounds)（CC0 1.0）原始 OGG 文件，置于 `src/assets/sounds/` 并由 Vite 作为本地资源打包；授权与来源记录同目录，播放无运行时网络。
 - Lazyweb: 未运行 —— 用户已给出完整视觉系统（MD3），外部站点调研不增加决策信息。
 - Imagen drafts: 未运行 —— 桌面工具界面由 MD3 组件语法直接定义，不需要图像稿。
 - Skipped lanes: 品牌 Layer B / 图片生成 / 克隆 URL —— 与用户指定的 MD3 冲突或无关。
@@ -23,7 +24,7 @@ Windows 桌面工具（Tauri 2 + 原生 TypeScript/CSS）。视觉规范：Mater
   2. 预设名 + 当前生效标记 + 未保存状态；
   3. 预设内容（JSON 编辑 / 与真实目标的差异）。
 - **Left out on purpose**：统计卡片、欢迎语、副标题、装饰性徽章、预设数量环形图、搜索框（列表规模为个位数）、远程字体、任何“示例预设”占位数据。
-- **Required content**：预设列表（名称、描述、目标、生效标记）、目标过滤器（全部/opencode/omo）、新建按钮、刷新、设置、顶栏 `导入配置文件`（原生文件选择，支持 .json/.jsonc、可多选）、`导入当前配置`（读取两个目标文件的当前内容，每次调用都由后端追加新预设）、`还原至原配置`（仅启动基线可还原时启用）、启动警告提示、拖放导入提示、预设名称、描述、目标选择、JSON 内容、保存、应用、复制、重命名（通过名称字段 + 保存）、导入、导出、删除（确认）、编辑/差异标签、无效 JSON 提示、未保存状态与离开保护、设置对话框（两个目标路径 + 主题）、桌面运行时缺失提示、错误提示。
+- **Required content**：预设列表（名称、描述、目标、生效标记）、目标过滤器（全部/opencode/omo）、新建按钮、刷新、设置、顶栏 `模型列表`（模型目录对话框）、`导入配置文件`（原生文件选择，支持 .json/.jsonc、可多选）、`导入当前配置`（读取两个目标文件的当前内容，每次调用都由后端追加新预设）、`还原至原配置`（仅启动基线可还原时启用）、启动警告提示、拖放导入提示、预设名称、描述、目标选择、JSON 内容、模型选择（仅 OMO 预设：agents/categories 的 model 分配）、保存、应用、复制、重命名（通过名称字段 + 保存）、导入、导出、删除（确认）、编辑/差异标签、无效 JSON 提示、未保存状态与离开保护、设置对话框（两个目标路径 + 主题 + 操作音效开关）、桌面运行时缺失提示、错误提示。
 - **Data shape -> component**：预设 = 有序清单（导航列表项）→ `list-detail` 左清单右详情；单个预设 = 详情表单 + 原始 JSON 编辑；草稿 vs 真实目标 = 统一差异列表（+/- 行），而非卡片。
 - **Layout**: `Layout: fixed-sidenav-shell + list-detail — grid rows [auto auto minmax(0,1fr) auto], columns [20rem minmax(0,1fr)]; scroll owners: preset list owns its own scroll, editor body owns its own scroll; header/footer fixed.`
 
@@ -134,10 +135,10 @@ MD3 type scale，字体使用 Windows 本地系统栈（离线要求，不下载
 ## 5. Components
 
 ### Top app bar（`.top-bar`）
-- **Structure**: 品牌图标 + 应用名 + 根目录路径（`folder_open` + 等宽小字）+ 右侧 `导入配置文件` / `导入当前配置` / `还原至原配置` 文字按钮 + `刷新` / `设置` 图标按钮。副标题仅用于加载中、读取失败或浏览器预览等临时状态，数据就绪后不显示。
-- **States**: default / hover（状态层）/ focus-visible（3px primary 环）/ disabled（38% 透明）。`导入配置文件` 在空预设状态仍可用；`导入当前配置` 读取两个目标文件的当前内容并由后端追加预设，不合并重复内容，有未保存编辑时先确认放弃；`还原至原配置` 仅在 `Snapshot.canRestoreStartup` 为 true 且无忙碌操作时启用。还原确认只说明启动时锁定的原始路径与内容，不展示当前设置路径；设置变更不改变还原基线。
-- **Accessibility**: `header` + `h1`；图标按钮带 `aria-label` 与 `title`；两个文字按钮保留 `aria-label`，窄窗口隐藏可见文字时仍可被读屏识别。
-- **Layout**: `cluster`，固定不滚动；根目录路径在视口宽度大于 1100px 时可见，1100px 及以下时隐藏，仅保留 `title` 提示；860px 下三个文字按钮保留完整标签，通过 16px 动作内边距与隐藏根目录保证顶栏不横向溢出；760px 及以下隐藏三个文字按钮的可见标签，仅保留图标与可访问名称；560px 及以下把应用名标题改为视觉隐藏，避免顶栏横向溢出。
+- **Structure**: 品牌图标 + 应用名 + 根目录路径（`folder_open` + 等宽小字）+ 右侧 `模型列表` / `导入配置文件` / `导入当前配置` / `还原至原配置` 文字按钮 + `刷新` / `设置` 图标按钮。副标题仅用于加载中、读取失败或浏览器预览等临时状态，数据就绪后不显示。
+- **States**: default / hover（状态层）/ focus-visible（3px primary 环）/ disabled（38% 透明）。`模型列表` 打开模型目录对话框，加载真实 CLI 模型；`导入配置文件` 在空预设状态仍可用；`导入当前配置` 读取两个目标文件的当前内容并由后端追加预设，不合并重复内容，有未保存编辑时先确认放弃；`还原至原配置` 仅在 `Snapshot.canRestoreStartup` 为 true 且无忙碌操作时启用。还原确认只说明启动时锁定的原始路径与内容，不展示当前设置路径；设置变更不改变还原基线。
+- **Accessibility**: `header` + `h1`；图标按钮带 `aria-label` 与 `title`；文字按钮保留 `aria-label`，窄窗口隐藏可见文字时仍可被读屏识别。
+- **Layout**: `cluster`，固定不滚动；根目录路径在视口宽度大于 1100px 时可见，1100px 及以下时隐藏，仅保留 `title` 提示；1100px 及以下四个文字动作内边距收至 8px、动作间距 8px；920px 及以下隐藏文字动作图标、保留完整标签，保证 860px 最小窗口下 `模型列表` 与三个既有动作标签完整显示、不裁切不换行；760px 及以下隐藏四个文字按钮的可见标签并恢复 20px 图标，仅保留图标与可访问名称；560px 及以下把应用名标题改为视觉隐藏，避免顶栏横向溢出。
 
 ### Preset list（`.preset-list`）
 - **Structure**: 目标分段过滤器（全部 / opencode / omo，带计数）→ `role="list"` 的按钮行（名称、描述单行、目标徽章、生效 `check_circle`）→ 空状态。
@@ -147,14 +148,26 @@ MD3 type scale，字体使用 Windows 本地系统栈（离线要求，不下载
 - **Layout**: `stack`；列表自身滚动，`min-block-size:0`。
 
 ### Editor pane（`.editor`）
-- **Structure**: 头部（预设名输入 + 目标选择 + 生效/未保存状态）→ 描述输入 → 动作条（保存 filled、应用 tonal、复制/导入/导出/删除 icon buttons）→ `tablist`（编辑 / 差异）→ 内容区（textarea 或差异列表）→ JSON 校验行。
+- **Structure**: 头部（预设名输入 + 目标选择 + 生效/未保存状态）→ 描述输入 → 动作条（保存 filled、应用 tonal、复制/导入/导出/删除 icon buttons）→ `tablist`（模型选择 / JSON / 差异；模型选择仅 OMO 目标可见）→ 内容区（模型分配、textarea 或差异列表）→ JSON 校验行。
 - **States**: default / dirty / invalid JSON / busy / desktop-required / no-selection / read error。
 - **Accessibility**: 每个字段有可见 `<label for>`；`Ctrl+S` 保存；删除与应用需确认对话框；对话框 Esc 关闭、焦点回归触发按钮。
 
 ### Tabs（`.tabs`）
-- **Structure**: `role="tablist"` + 两个 `role="tab"`（`code` 编辑 / `difference` 差异）。
-- **States**: selected（`secondary-container`）、hover、focus-visible；方向键左右切换。
-- **Accessibility**: `aria-selected`、`tabindex` roving、`aria-controls`。
+- **Structure**: `role="tablist"` + 最多三个 `role="tab"`（`sync_alt` 模型选择 / `code` JSON / `difference` 差异）。非 OMO 目标隐藏模型选择，仅保留 JSON 与差异。
+- **States**: selected（`secondary-container`）、hover、focus-visible；方向键左右切换、Home/End 跳到首尾，只在可见标签间循环。
+- **Accessibility**: `aria-selected`、`tabindex` roving、`aria-controls`；隐藏的目标不进入 Tab 顺序。
+
+### Model assignment panel（`.model-panel`，仅 OMO）
+- **Structure**: 说明（只写 `agents.<名称>.model` / `categories.<名称>.model`）→ 无效 JSON / 分区形状错误提示 + `打开 JSON 视图` → 现有分配行（键名、完整路径、模型下拉、显式 `清除`）→ 新增分配表单（分区、用户输入键名、模型下拉、`添加分配`）→ 模型目录状态与操作反馈。
+- **Variants**: 下拉包含当前未知模型（标记“当前，未列出”）并保持选中，不静默替换；清除只在点击 `清除` 时发生，选择下拉不会清空覆盖。
+- **States**: ready / parse-error / wrong-section / catalogue-loading / catalogue-error / patching / add-validation-error / empty assignments。
+- **Accessibility**: 每行下拉有 `aria-label="<section>.<key>.model"`；错误 `role="alert"`；命令失败进入全局错误横幅；JSON 编辑始终是可用替代路径。
+- **Rules**: 新增键名拒绝空值与 `__proto__` / `prototype` / `constructor`；已存在对象但无 model 时可补写，已有 model 或非对象条目时不覆盖；不创建 agent/category 其他字段。
+
+### Model list dialog（`.dialog--models`）
+- **Structure**: 标题 + 关闭 → 来源说明（真实 CLI 模型命令、合并当前项目配置与继承凭据/插件）+ 运行目录 → 文本过滤 + provider 过滤 + `刷新列表` → 状态/计数（加载、N 个、显示 X / 共 N、错误、空）→ 完整 provider/model ID 列表（等宽、可换行）→ 关闭。
+- **States**: loading / ready / filtered-empty / empty / error；`刷新列表` 是唯一带 `--refresh` 的显式动作，进行中禁用；读取失败保留上次结果并显示错误原文。
+- **Accessibility**: `aria-labelledby`、原生模态焦点圈定、Esc 关闭、打开时焦点进入过滤框；列表 `role="list"`，IDs 以文本渲染（无 HTML 注入）。
 
 ### Diff view（`.diff`）
 - **Structure**: 统一差异列表，每行 = 行号槽 + `+`/`−` 记号 + 文本；新增用 success 容器、删除用 error 容器；顶部说明对比对象路径。
@@ -166,6 +179,11 @@ MD3 type scale，字体使用 Windows 本地系统栈（离线要求，不下载
 - **Structure**: 可见 label（label-large）+ `input`/`textarea` + 支持文本（body-small）。
 - **States**: default / hover / focus（2px primary 描边 + 1px outline 内衬）/ disabled / invalid（error 描边 + 错误文本）。
 - **Accessibility**: `aria-describedby` 指向支持文本；`aria-invalid`。
+
+### Switch（`.switch`）
+- **Structure**: 原生 `checkbox`（`appearance: none`）绘制 MD3 开关轨道与手柄，行内文字 `操作音效` + 下方支持文本；仅设置对话框使用。
+- **States**: off / on / focus-visible（3px primary 环）/ disabled（38%）。开关几何固定 52×32，状态切换只改变填充与手柄位移，不改变布局。
+- **Accessibility**: 原生 checkbox 语义与 Space 切换；`label` 绑定控件，`aria-describedby` 指向支持文本；关闭时立即静音，不播放关闭动作的点击音。
 
 ### Buttons
 - **Filled**（保存、确认应用）：primary / on-primary，`--shape-full`，高 40px。
@@ -217,6 +235,12 @@ MD3 type scale，字体使用 Windows 本地系统栈（离线要求，不下载
 - `prefers-reduced-motion: reduce` 下移除过渡和进度条动画（进度条改为静态填充）。
 - 无不服务状态的动画；悬停不改变信息时不加动效。
 
+### Sound（`src/sounds.ts` + `src/sounds-assets.ts`）
+- 音源为项目内置的 Kenney Interface Sounds 1.0（CC0）OGG 文件（点击 / 成功 / 错误），随 Vite 打包离线加载，无运行时网络、无第三方依赖；首次加载用 `OfflineAudioContext` 解码为 `AudioBuffer` 并复用，实际 `AudioContext` 仍在首次用户手势时惰性创建，不按点击重复创建。播放使用 `AudioBufferSourceNode`，便于 QA 通过 Web Audio 图捕获输出。
+- 短促轻音：启用状态的按钮、标签与分类切换、复选框/单选/下拉变更播放点击音；成功与错误的结果横幅分别播放对应的确认音与错误音。点击音按 90ms 节流且最多两路重叠，结果音替换上一段结果音，不排队叠加。
+- 输入文字、启动加载与启动警告不发声；结果横幅按内容签名去重，同一横幅重渲染不重复播放；首次用户交互之前的结果横幅也不发声。
+- 设置中的 `操作音效`（默认开启）写入 `localStorage`，独立于后端设置文件；关闭后立即静音，不播放关闭动作的点击音。资源加载、解码、初始化或播放失败时静默降级并只记录一次控制台警告，不阻断任何配置流程。
+
 ## 7. Depth & Surface
 
 **Strategy: tonal-shift + 单一投影层级。**
@@ -238,6 +262,7 @@ MD3 type scale，字体使用 Windows 本地系统栈（离线要求，不下载
 - 全键盘可达：Tab 顺序为顶栏 → 过滤器 → 列表 → 编辑字段 → 动作 → 标签 → 内容；对话框 Esc 关闭；不困住焦点。
 - 320px 宽度下无横向滚动的首要内容；编辑器内部文本横向滚动属于二维内容（代码），允许。
 - 显示语言中文；错误消息来自后端原文，不翻译、不吞掉。
+- 音效只作为冗余反馈：成功、错误、所选状态均有文字与视觉表达，不依赖声音传递信息；关闭音效不影响任何操作。
 - 文件拖放提供顶栏 `导入配置文件` 作为键盘与单指针替代；无登录、无帮助重复说明、无多步表单。
 
 ### Accepted Debt

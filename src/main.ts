@@ -7,6 +7,8 @@ import "./styles/indicators.css";
 import "./styles/surfaces.css";
 import "./styles/diff.css";
 import "./styles/drop.css";
+import "./styles/models.css";
+import "./styles/chat.css";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -26,9 +28,16 @@ import type { EditorView } from "./ui/editor";
 import { createStatusBar } from "./ui/status-bar";
 import { createConfirmDialog } from "./ui/confirm-dialog";
 import { createSettingsDialog } from "./ui/settings-dialog";
+import { createModelsDialog } from "./ui/models-dialog";
+import { createChatView } from "./chat";
 import { createFlows } from "./ui/flows";
 import { createDropZone } from "./ui/drop-zone";
 import type { AppHandlers } from "./ui/handlers";
+import {
+  hasUserInteracted,
+  installSoundFeedback,
+  playResult,
+} from "./sounds";
 
 function render(state: UiState): void {
   topBar.update(state);
@@ -43,6 +52,8 @@ const root = requireMount("app");
 
 const confirmDialog = createConfirmDialog();
 const settingsDialog = createSettingsDialog(actions.persistSettings);
+const modelsDialog = createModelsDialog();
+const chatView = createChatView();
 
 let editorView: EditorView | null = null;
 const handlers: AppHandlers = createFlows({
@@ -61,6 +72,12 @@ const topBar = createTopBar({
   },
   onOpenSettings: () => {
     handlers.onOpenSettings();
+  },
+  onOpenModels: () => {
+    modelsDialog.open();
+  },
+  onOpenChats: () => {
+    chatView.open();
   },
   onOpenFiles: handlers.onImportFiles,
   onImportCurrent: handlers.onImportCurrent,
@@ -101,7 +118,12 @@ const app = create("div", "app", [
   dropZone.element,
 ]);
 root.append(app);
-document.body.append(confirmDialog.element, settingsDialog.element);
+document.body.append(
+  confirmDialog.element,
+  settingsDialog.element,
+  modelsDialog.element,
+  chatView.element,
+);
 dropZone.mount();
 
 applyTheme("system");
@@ -111,6 +133,25 @@ watchSystemTheme(() => {
 
 subscribe(render);
 render(getState());
+
+installSoundFeedback();
+let bannerSignature: string | null = null;
+subscribe((state) => {
+  const banner = state.banner;
+  const next =
+    banner === null
+      ? null
+      : `${banner.tone}\u0000${banner.message}\u0000${banner.detail ?? ""}`;
+  if (next === bannerSignature) {
+    return;
+  }
+  bannerSignature = next;
+  if (banner === null || banner.tone === "info" || !hasUserInteracted()) {
+    return;
+  }
+  playResult(banner.tone);
+});
+
 void actions.loadSnapshot();
 
 function destroyWindow(): void {

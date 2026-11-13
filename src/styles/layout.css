@@ -1,5 +1,7 @@
 .app {
   position: relative;
+  min-inline-size: 0;
+  inline-size: 100%;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   block-size: 100dvb;
@@ -255,9 +257,43 @@
   .top-bar__root {
     display: none;
   }
+
+  .top-bar {
+    gap: var(--space-2);
+  }
+
+  .top-bar__wide-action {
+    padding-inline: var(--space-2);
+  }
+}
+
+@media (max-width: 920px) {
+  .top-bar {
+    padding-inline: var(--space-2);
+    flex-wrap: wrap;
+    padding-block: var(--space-2);
+  }
+
+  .top-bar__actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .top-bar__actions .btn .icon {
+    display: none;
+  }
+
+  .top-bar__wide-action {
+    padding-inline: var(--space-3);
+  }
 }
 
 @media (max-width: 760px) {
+  .top-bar__actions .btn .icon {
+    display: inline-block;
+  }
+
   .top-bar__wide-action {
     padding-inline: var(--space-3);
   }

@@ -11,6 +11,8 @@ export interface TopBarView {
 export interface TopBarOptions {
   onRefresh(): void;
   onOpenSettings(): void;
+  onOpenModels(): void;
+  onOpenChats(): void;
   onOpenFiles(files: readonly File[]): void;
   onImportCurrent(): void;
   onRestoreStartup(): void;
@@ -46,6 +48,17 @@ export function createTopBar(options: TopBarOptions): TopBarView {
     fileInput.value = "";
   });
 
+  const models = button("模型列表", "outlined", "sync_alt");
+  models.classList.add("top-bar__wide-action", "top-bar__models-action");
+  models.setAttribute("aria-label", "模型列表");
+  models.title = "查看 OpenCode 可用的真实模型列表";
+  models.addEventListener("click", options.onOpenModels);
+
+  const chats = button("聊天记录", "outlined", "description");
+  chats.classList.add("top-bar__wide-action");
+  chats.setAttribute("aria-label", "聊天记录");
+  chats.addEventListener("click", options.onOpenChats);
+
   const importConfig = button("导入配置文件", "outlined", "folder_open");
   importConfig.classList.add("top-bar__wide-action");
   importConfig.setAttribute("aria-label", "导入配置文件");
@@ -66,6 +79,8 @@ export function createTopBar(options: TopBarOptions): TopBarView {
   const settings = iconButton("settings", "设置");
   settings.addEventListener("click", options.onOpenSettings);
   const actions = create("div", "top-bar__actions", [
+    models,
+    chats,
     importConfig,
     importCurrent,
     restore,
