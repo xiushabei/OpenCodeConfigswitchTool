@@ -2,6 +2,8 @@ use tauri::State;
 
 use crate::engine::Engine;
 use crate::model::{ApplyResult, Preset, Settings, Snapshot};
+use crate::models::{self, ModelCatalog};
+use crate::omo_patch::{self, Section};
 
 /// Returns the current settings, presets, and target states.
 ///
@@ -159,4 +161,39 @@ pub fn import_current_configs(engine: State<'_, Engine>) -> Result<Snapshot, Str
 )]
 pub fn export_preset(id: &str, engine: State<'_, Engine>) -> Result<String, String> {
     engine.export_preset(id).map_err(|err| err.to_string())
+}
+
+/// Runs the installed `OpenCode` CLI and returns verified models plus the working directory.
+///
+/// # Errors
+///
+/// Returns a user-facing message when the settings target cannot be resolved, the CLI is missing,
+/// times out, exits unsuccessfully, or prints untrusted output.
+#[tauri::command]
+pub async fn list_models(refresh: bool, engine: State<'_, Engine>) -> Result<ModelCatalog, String> {
+    let context = engine.model_context().map_err(|err| err.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || models::list(&context, refresh))
+        .await
+        .map_err(|err| format!("模型列表任务异常结束：{err}"))?
+        .map_err(|err| err.to_string())
+}
+
+/// Edits one OMO `agents`/`categories` entry model assignment without touching disk.
+///
+/// # Errors
+///
+/// Returns a user-facing message when the content is not a JSON object, the section or entry has
+/// the wrong type, or the key/model is empty or prototype-sensitive.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri deserializes command arguments from owned IPC values"
+)]
+pub fn patch_omo_model(
+    content: String,
+    section: Section,
+    key: &str,
+    model: Option<String>,
+) -> Result<String, String> {
+    omo_patch::patch(&content, section, key, model.as_deref()).map_err(|err| err.to_string())
 }

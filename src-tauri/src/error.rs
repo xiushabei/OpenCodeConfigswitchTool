@@ -46,6 +46,21 @@ pub enum AppError {
     RestoreRefreshFailed {
         reason: String,
     },
+    CliUnavailable {
+        reason: String,
+    },
+    CliFailed {
+        reason: String,
+    },
+    CliTimeout {
+        seconds: u64,
+    },
+    ModelOutputInvalid {
+        reason: String,
+    },
+    OmoPatchInvalid {
+        reason: String,
+    },
 }
 
 impl AppError {
@@ -97,6 +112,17 @@ impl fmt::Display for AppError {
             Self::RestoreRefreshFailed { reason } => {
                 write!(f, "目标文件已恢复，但刷新数据失败：{reason}")
             }
+            Self::CliUnavailable { reason } => {
+                write!(f, "无法运行 OpenCode 模型命令：{reason}")
+            }
+            Self::CliFailed { reason } => write!(f, "OpenCode 模型命令失败：{reason}"),
+            Self::CliTimeout { seconds } => {
+                write!(f, "OpenCode 模型命令超过 {seconds} 秒仍未结束，已终止。")
+            }
+            Self::ModelOutputInvalid { reason } => {
+                write!(f, "OpenCode 模型输出无效：{reason}")
+            }
+            Self::OmoPatchInvalid { reason } => write!(f, "OMO 模型配置无效：{reason}"),
         }
     }
 }
@@ -118,7 +144,12 @@ impl std::error::Error for AppError {
             | Self::StartupBaselineMissing
             | Self::StartupRestoreBlocked { .. }
             | Self::RestorePartial { .. }
-            | Self::RestoreRefreshFailed { .. } => None,
+            | Self::RestoreRefreshFailed { .. }
+            | Self::CliUnavailable { .. }
+            | Self::CliFailed { .. }
+            | Self::CliTimeout { .. }
+            | Self::ModelOutputInvalid { .. }
+            | Self::OmoPatchInvalid { .. } => None,
         }
     }
 }

@@ -3,6 +3,8 @@
 pub mod apply;
 pub mod backup;
 pub mod commands;
+pub mod chat;
+pub mod chat_commands;
 mod config_import;
 pub mod engine;
 pub mod error;
@@ -10,6 +12,8 @@ pub mod export;
 pub mod import;
 pub mod jsonc;
 pub mod model;
+pub mod models;
+pub mod omo_patch;
 pub mod paths;
 pub mod restore;
 pub mod service;
@@ -64,7 +68,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::restore_startup,
             commands::read_import_file,
             commands::normalize_import_content,
-            commands::import_current_configs
+            commands::import_current_configs,
+            commands::list_models,
+            commands::patch_omo_model,
+            chat_commands::discover_chat_databases,
+            chat_commands::list_chat_sessions,
+            chat_commands::read_chat_session,
+            chat_commands::preview_chat_delete,
+            chat_commands::delete_chat_session
         ])
         .run(tauri::generate_context!())?;
     Ok(())

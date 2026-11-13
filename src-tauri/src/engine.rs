@@ -3,8 +3,9 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use crate::error::AppError;
 use crate::model::{ApplyResult, Preset, Settings, Snapshot};
+use crate::models::{self, ModelCatalog, ModelContext};
 use crate::startup::StartupCapture;
-use crate::{apply, config_import, export, import, restore, service, startup};
+use crate::{apply, config_import, export, import, restore, service, startup, storage};
 
 /// Owns the project root and serializes every command that reads or writes owned files.
 pub struct Engine {
@@ -194,5 +195,34 @@ impl Engine {
     pub fn export_preset(&self, id: &str) -> Result<String, AppError> {
         let _guard = self.guard()?;
         export::export_preset(&self.root, id)
+    }
+
+    /// Resolves the project root and the selected `OpenCode` target without taking the command lock.
+    ///
+    /// The model CLI runs for minutes at worst, so it must never serialize preset or settings
+    /// commands behind it. Reading settings only uses the existing storage validation boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns the settings read or target validation error when the selected `OpenCode` path
+    /// cannot be resolved.
+    pub fn model_context(&self) -> Result<ModelContext, AppError> {
+        let settings = storage::read_settings(&self.root)?;
+        let config = crate::paths::resolve_target(&self.root, &settings.targets.opencode)?;
+        Ok(ModelContext {
+            root: self.root.clone(),
+            config,
+        })
+    }
+
+    /// Runs the installed `OpenCode` CLI and returns the verified model catalogue.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError`] from [`Self::model_context`] or [`models::list`] when the catalogue
+    /// cannot be resolved, the CLI cannot run, or its output is untrusted.
+    pub fn list_models(&self, refresh: bool) -> Result<ModelCatalog, AppError> {
+        let context = self.model_context()?;
+        models::list(&context, refresh)
     }
 }
