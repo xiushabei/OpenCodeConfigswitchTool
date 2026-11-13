@@ -47,13 +47,15 @@ Applying a preset validates the JSON again, copies the existing target's origina
 
 ### Active markers
 
-A preset is marked active only when its stored content matches the target file's content exactly, character for character. After a switch, the marker moves to the preset you applied. If another program edits the target, refresh and the markers are recalculated from what is actually on disk. A preset that looks similar but differs in whitespace or line endings is not marked active.
+A preset is marked active when its JSON/JSONC content is equivalent to the target file. Comments, formatting and object key order are ignored; array order, value types and exact numeric values remain significant. Refresh recalculates markers from disk. The diff uses the same semantics without rewriting editor text; invalid JSON shows an error and falls back to a raw text comparison.
 
 ## Startup import, current config import, and restore
 
 Automatic import, manual import, and restore use the following rules.
 
 **Startup import runs once.** On the first launch only, the app reads the OpenCode and OMO files named in the settings and adds them as "Current OpenCode" and "Current OMO" presets. The completed flag is stored with the preset data, so later launches never import automatically again, even if the target files change. Preset data created by older versions counts as already completed. Renamed legacy presets such as "Startup import OpenCode" become "Current OpenCode"; presets you renamed yourself are left alone.
+
+Upgrade exception: for the default OMO path `~/.omo/omo.jsonc`, startup adds the current configuration when no equivalent OMO preset exists. Unchanged content is not duplicated on later launches; genuinely changed content adds one new preset. Custom OMO paths are excluded. The old default path migrates only when the new file exists, after backing up the switcher's settings.
 
 **Import current config always appends.** Each click reads both configured files and adds new presets. Even identical content creates a new entry rather than overwriting an earlier one, and duplicate names gain suffixes like `(2)` and `(3)`.
 
@@ -71,7 +73,7 @@ The app never restarts OpenCode. It shows a reminder to restart, because a runni
 {
   "targets": {
     "opencode": "~/.config/opencode/opencode.json",
-    "omo": "~/.config/opencode/oh-my-openagent.json"
+    "omo": "~/.omo/omo.jsonc"
   },
   "theme": "system"
 }
@@ -132,7 +134,7 @@ The app validates JSON object syntax only. Field meanings and version compatibil
 
 The model catalogue runs the installed `opencode models` CLI, using the switcher's root as its working directory and the configured OpenCode target through `OPENCODE_CONFIG`. OpenCode applies its own merged global/project configuration, credentials and plugins. The explicit refresh action runs `opencode models --refresh`.
 
-OMO presets have a model-selection view alongside the raw JSON and diff views. It edits only `agents.<key>.model` and `categories.<key>.model`; unknown fields, key order and large integers are preserved by the Rust patch command. Existing model IDs absent from the catalogue remain selectable as current values.
+OMO presets have a model-selection view alongside the raw JSON and diff views. It edits only `[opencode].agents.<key>.model` and `[opencode].categories.<key>.model`; the older flat `agents.<key>.model` / `categories.<key>.model` form remains supported for backward compatibility. Unknown fields, key order and large integers are preserved by the Rust patch command. Existing model IDs absent from the catalogue remain selectable as current values.
 
 ## Chat history
 

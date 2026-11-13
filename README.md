@@ -30,7 +30,7 @@ bun run build
 bun run tauri build
 ```
 
-Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 89 项 Rust 测试、10 项 Bun 测试、严格 Clippy、前端构建与真实桌面操作验证。
+Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。当前版本已通过 110 项 Rust 测试、31 项 Bun 测试、严格 Clippy、前端构建与真实桌面操作验证。
 
 单独运行 `bun run dev` 只提供浏览器界面预览；配置文件操作需要 Tauri 桌面环境。
 
@@ -42,7 +42,7 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 {
   "targets": {
     "opencode": "~/.config/opencode/opencode.json",
-    "omo": "~/.config/opencode/oh-my-openagent.json"
+    "omo": "~/.omo/omo.jsonc"
   },
   "theme": "system"
 }
@@ -65,6 +65,8 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 
 只有首次启动时会自动读取设置指定的 OpenCode、OMO 配置，新增“当前 OpenCode”“当前 OMO”预设。完成状态保存在项目预设数据中，后续启动即使目标内容改变也不再自动导入；旧版已有预设数据视为已完成首次导入。程序每次启动仍保存两个目标的原始内容，供右上角“还原至原配置”使用。刷新、切换预设、手动导入或修改目标设置不会重置本次启动的还原基准。
 
+默认 OMO 路径 `~/.omo/omo.jsonc` 有一项升级兼容例外：启动时若没有内容等价的 OMO 预设，会补充导入一次；相同内容后续启动不重复导入，真实内容改变后会新增一份。自定义 OMO 路径不触发此行为。旧默认路径仅在新文件存在时迁移，并先备份切换器设置。
+
 “导入配置文件”可添加本地配置，也可以将配置文件拖入窗口。原始配置按文件名识别 OpenCode / OMO，无法识别时使用当前选中的类别；导出的预设文件沿用文件中记录的类别。
 
 “导入当前配置”每次读取当前设置所指向的两个配置文件，并追加新的预设，即使内容相同也不会覆盖先前导入。重名时添加 `(2)`、`(3)` 等后缀。旧自动预设的“启动导入 OpenCode / OMO”名称会转换为“当前 OpenCode / OMO”；用户自行重命名的预设不受影响。
@@ -74,6 +76,8 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 确认还原后会先备份当前目标，再恢复本次启动时的原文（包括注释、换行）；本次启动时不存在的目标会恢复为不存在。还原对应的是启动时的路径，修改设置不会把旧内容写到新路径。退出重开程序后，还原基准变为这次启动时的状态。还原后需重启 OpenCode 读取配置。
 
 ## 验证切换生效
+
+差异和激活标记按 JSON/JSONC 内容比较，忽略注释、缩进、换行和对象键顺序；数组顺序、字段类型和数值仍有意义，大整数不会转成浮点数。差异视图的规范化仅用于显示，不修改编辑器原文；无法解析时提示错误并按原文比较。
 
 建议先将目标设置为项目内的测试文件，完成一次切换，再改回实际配置路径。
 
@@ -89,7 +93,7 @@ Rust 文件行为测试：`cargo test --manifest-path src-tauri/Cargo.toml`。�
 
 读取时以切换器项目根目录为工作目录，并通过 `OPENCODE_CONFIG` 指向设置中的 OpenCode 目标文件；OpenCode 自身的全局配置、项目配置、凭据和插件仍按其规则参与合并。模型列表对应当前磁盘配置，不会为了预览自动应用未保存的预设。可按提供商和模型 ID 筛选，界面显示读取目录。
 
-OMO 预设提供“模型选择”和原始 JSON 编辑方式。模型选择只修改 `agents.<名称>.model` 或 `categories.<名称>.model`，保留其他字段；原始 JSON 修改后可切回模型选择查看。当前模型不在目录中时保留原值，不会自动替换。添加条目时填写实际代理或类别名称；字段规则以所用 OpenCode 版 OMO 的文档为准。
+OMO 预设提供“模型选择”和原始 JSON 编辑方式。模型选择只修改 `[opencode].agents.<名称>.model` 或 `[opencode].categories.<名称>.model`；旧版平铺的 `agents.<名称>.model` / `categories.<名称>.model` 继续兼容，保留其他字段；原始 JSON 修改后可切回模型选择查看。当前模型不在目录中时保留原值，不会自动替换。添加条目时填写实际代理或类别名称；字段规则以所用 OpenCode 版 OMO 的文档为准。
 
 ## 聊天记录
 
