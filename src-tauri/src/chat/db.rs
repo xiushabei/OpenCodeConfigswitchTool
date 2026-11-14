@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags};
 
 use super::error::{ChatError, ChatResult};
 
-const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+pub(super) const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Validates that `path` points at an existing database file without creating anything.
 pub fn validate_path(path: &Path) -> ChatResult<()> {

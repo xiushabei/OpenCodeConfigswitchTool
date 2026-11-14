@@ -34,37 +34,85 @@ pub fn preview(path: &Path, session_id: &str) -> ChatResult<DeletePreview> {
     })
 }
 
-/// Deletes the confirmed subtree. The caller must run the process check immediately before this.
-///
-/// Preflight recomputes the descendant set, then backs the database up through SQLite's online
-/// backup API. Only after that does it open a write transaction and remove verified child rows.
+/// Controls a confirmed deletion. The default preserves the original behaviour and requires a
+/// backup before the delete transaction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DeleteOptions {
+    /// When `true`, a compact SQLite snapshot is written to `backups/chat/` before deleting.
+    /// When `false`, no backup directory or file is created and `root` is never touched.
+    pub backup_before_delete: bool,
+}
+
+impl Default for DeleteOptions {
+    fn default() -> Self {
+        Self {
+            backup_before_delete: true,
+        }
+    }
+}
+
+/// Deletes the confirmed subtree with the default options, including a mandatory backup.
 ///
 /// # Errors
 ///
-/// Returns [`ChatError::Confirmation`] when the confirmed set differs from the recomputed
-/// descendants, [`ChatError::Backup`] when the backup fails, [`ChatError::Schema`] for an unknown
-/// layout, or [`ChatError::Query`] when the transaction fails and rolls back.
+/// See [`execute_with_options`].
 pub fn execute(
     path: &Path,
     root: &Path,
     session_id: &str,
     confirmed: &[String],
 ) -> ChatResult<DeleteReport> {
+    execute_with_options(path, root, session_id, confirmed, DeleteOptions::default())
+}
+
+/// Deletes the confirmed subtree. The caller must run the process check immediately before this.
+///
+/// Preflight recomputes the descendant set, verifies the foreign-key cascades, and checks the
+/// confirmed set. With [`DeleteOptions::default`] it then backs the database up through SQLite's
+/// compact snapshot before opening a write transaction and removing verified child rows. When
+/// `backup_before_delete` is `false`, the backup step is skipped entirely: `root` is not read or
+/// written, and the report carries an empty `backup` with an explicit "未创建备份" message.
+///
+/// # Errors
+///
+/// Returns [`ChatError::Confirmation`] when the confirmed set differs from the recomputed
+/// descendants, [`ChatError::Backup`] when a required backup fails, [`ChatError::Schema`] for an
+/// unknown layout or missing cascade, or [`ChatError::Query`] when the transaction fails and rolls
+/// back. A failed backup always aborts before any row is removed.
+pub fn execute_with_options(
+    path: &Path,
+    root: &Path,
+    session_id: &str,
+    confirmed: &[String],
+    options: DeleteOptions,
+) -> ChatResult<DeleteReport> {
     let mut conn = open_read_write(path)?;
     let schema = introspect(&conn)?;
     verify_deletion(&conn, &schema)?;
     let ids = subtree(&conn, &schema, session_id)?;
     confirm_matches(&ids, confirmed)?;
-    let backup = backup_database(path, root)?;
+    let backup = if options.backup_before_delete {
+        backup_database(path, root)?
+    } else {
+        String::new()
+    };
     let deleted = remove_rows(&mut conn, &schema, &ids)?;
     let checkpoint = checkpoint(&conn);
-    Ok(DeleteReport {
-        deleted_session_ids: ids.clone(),
-        backup: backup.clone(),
-        message: format!(
+    let message = if options.backup_before_delete {
+        format!(
             "已删除 {deleted} 个会话（含全部子会话）。数据库备份：{backup}。\
              SQLite 将在后续操作中回收物理文件空间。{checkpoint}"
-        ),
+        )
+    } else {
+        format!(
+            "已删除 {deleted} 个会话（含全部子会话）。未创建备份。\
+             SQLite 将在后续操作中回收物理文件空间。{checkpoint}"
+        )
+    };
+    Ok(DeleteReport {
+        deleted_session_ids: ids,
+        backup,
+        message,
     })
 }
 

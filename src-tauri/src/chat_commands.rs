@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::chat::{
-    self, ChatError, DeletePreview, DeleteReport, DiscoveryResult, SessionList, SessionRead, Sort,
+    self, ChatError, DeleteOptions, DeletePreview, DeleteReport, DiscoveryResult, SessionList,
+    SessionRead, Sort,
 };
 use crate::engine::Engine;
 
@@ -81,19 +82,29 @@ pub async fn preview_chat_delete(
     .map_err(|err| err.to_string())
 }
 
-/// Deletes a confirmed session subtree after a second process check and SQLite online backup.
+/// Deletes a confirmed session subtree after a second process check and an optional backup.
+///
+/// `backup_before_delete` is the IPC key `backupBeforeDelete`. Omitting it keeps the previous
+/// behaviour and creates a compact SQLite snapshot before the transaction. Passing `false` skips
+/// the backup entirely: no `backups/` directory is created, the report's `backup` field is empty,
+/// and the message states that no backup was created.
 ///
 /// # Errors
 ///
 /// Returns a user-facing message when `OpenCode` is running or the check fails, when the confirmed
-/// set no longer matches the recomputed descendants, or when the backup or transaction fails.
+/// set no longer matches the recomputed descendants, or when the required backup or transaction
+/// fails.
 #[tauri::command]
 pub async fn delete_chat_session(
     path: String,
     session_id: String,
     confirmed_session_ids: Vec<String>,
+    backup_before_delete: Option<bool>,
     engine: State<'_, Engine>,
 ) -> Result<DeleteReport, String> {
+    let options = DeleteOptions {
+        backup_before_delete: backup_before_delete.unwrap_or(true),
+    };
     let root = engine.root().to_path_buf();
     tauri::async_runtime::spawn_blocking(move || {
         if chat::opencode_running()? {
@@ -101,11 +112,12 @@ pub async fn delete_chat_session(
                 reason: "检测到 OpenCode 进程，删除已取消。".to_string(),
             });
         }
-        chat::execute_delete(
+        chat::execute_delete_with_options(
             &PathBuf::from(path),
             &root,
             &session_id,
             &confirmed_session_ids,
+            options,
         )
     })
     .await

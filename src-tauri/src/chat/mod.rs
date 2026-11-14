@@ -16,7 +16,10 @@ mod schema_detect;
 mod types;
 
 pub use backup::backup_database;
-pub use delete::{execute as execute_delete, preview as preview_delete};
+pub use delete::{
+    execute as execute_delete, execute_with_options as execute_delete_with_options,
+    preview as preview_delete, DeleteOptions,
+};
 pub use discover::discover;
 pub use error::{ChatError, ChatResult};
 pub use list::list_sessions;
