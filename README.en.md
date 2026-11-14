@@ -8,7 +8,7 @@ A Windows desktop app built with Tauri 2 that keeps separate JSON configuration 
 
 ## Download and run
 
-Grab the latest portable Windows x64 build from the [releases page](https://github.com/xiushabei/OpenCodeConfigswitchTool/releases/latest). Version 0.1.0 is the current release.
+Grab the portable Windows x64 build for version 1.0.0 from the [releases page](https://github.com/xiushabei/OpenCodeConfigswitchTool/releases/latest).
 
 1. Download the zip for Windows x64.
 2. Extract it into a folder you can write to, such as one under your user profile. Avoid read-only or protected locations, since the app stores its own data beside itself.
@@ -142,7 +142,15 @@ Chat history opens an existing `opencode.db` read-only and detects supported v1/
 
 A read returns all messages and parts the backend can decode, and the interface does not clip them again. Full reads use memory proportional to session size and can take longer on very large sessions. The interface marks a part as incomplete only when the backend reports that it could not fully parse it; normal collapsed previews are never labelled as truncated.
 
-Deletion requires OpenCode to be fully stopped, a second confirmation of the selected session and descendants, a successful SQLite-consistent backup, and verified schema relationships. Unknown schemas fail closed. Deletion/backup tests use synthetic local databases; the live OpenCode database is never used for destructive development QA.
+Deletion requires OpenCode to be fully stopped, a second confirmation of the selected session and descendants, and verified schema relationships. The confirmation offers a checked-by-default “删除前备份” (back up before deletion) checkbox. When checked, a SQLite-consistent backup must succeed before deletion; unchecking skips backup creation. Unknown schemas fail closed. Deletion/backup tests use synthetic local databases; the live OpenCode database is never used for destructive development QA.
+
+The first deletion attempt shows the Chinese test-phase warning below. Only “我已知晓，继续” records acknowledgement locally and continues to the scope preview and second confirmation. Cancel, close and Escape perform no deletion. Unavailable local storage causes the warning to reappear next time.
+
+> 本功能目前处于测试阶段，常见的问题有：磁盘读写占满，电脑卡顿，整个删除过程大约5-8分钟，使用此功能产生的所有后果由用户承担
+
+The session list mounts only visible rows and nearby rows, preserving dates, parent relationships and keyboard navigation. During resizing, layout updates are combined per animation frame and mounted rows are reused while preserving scroll position. When backup is selected, `VACUUM INTO` creates a complete compact snapshot that omits free database pages; deletion starts only after it succeeds. Large amounts of live data still require corresponding backup IO; this operation does not shrink the source database file. The warning's duration is product copy rather than a measured completion-time guarantee.
+
+Version 1.0.0 passed 117 Rust tests, 56 Bun tests, strict Clippy and the frontend production build, with isolated browser checks for resizing and deletion controls.
 
 ## License
 
