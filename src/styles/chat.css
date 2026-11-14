@@ -118,6 +118,27 @@
   color: var(--md-sys-color-on-primary-container);
 }
 
+/* Windowed list: one positioned canvas, only nearby rows are mounted. */
+.chat-list__inner {
+  position: relative;
+}
+
+.chat-list--windowed { display: block; }
+
+.chat-list--windowed .chat-item {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  inline-size: auto;
+}
+
+.chat-list--windowed .chat-item--child {
+  inset-inline-start: var(--space-4);
+  inset-inline-end: 0;
+  inline-size: auto;
+  margin-inline-start: 0;
+}
+
 .chat-item__body { display: flex; flex-direction: column; gap: var(--space-1); min-inline-size: 0; }
 
 .chat-item__title-row { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
