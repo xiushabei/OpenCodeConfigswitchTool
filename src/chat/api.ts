@@ -59,12 +59,14 @@ export async function deleteChatSession(
   path: string,
   sessionId: string,
   confirmedSessionIds: readonly string[],
+  backupBeforeDelete: boolean = true,
 ): Promise<ChatDeleteResult> {
   return parseDeleteResult(
     await invokeCommand(COMMANDS.delete, {
       path,
       sessionId,
       confirmedSessionIds,
+      backupBeforeDelete,
     }),
   );
 }

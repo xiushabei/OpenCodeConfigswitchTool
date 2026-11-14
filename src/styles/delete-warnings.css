@@ -1,0 +1,54 @@
+/* Chat delete backup choice and first-use warning. Scoped to their dialogs only. */
+
+.chat-delete__backup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-sm);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--type-body-medium-size);
+  line-height: var(--type-body-medium-line);
+  cursor: pointer;
+}
+
+.chat-delete__backup:has(.chat-delete__checkbox:disabled) {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}
+
+.chat-delete__checkbox {
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: inherit;
+}
+
+.chat-delete__checkbox:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.chat-delete__backup-label {
+  font-weight: 500;
+  letter-spacing: var(--type-tracking-label);
+}
+
+.dialog--delete-warning {
+  inline-size: min(560px, calc(100vw - var(--space-8)));
+}
+
+.delete-warning__icon {
+  flex: none;
+  margin-block-start: 2px;
+  color: var(--md-sys-color-error);
+}
+
+.dialog--delete-warning .dialog__text {
+  white-space: pre-line;
+}

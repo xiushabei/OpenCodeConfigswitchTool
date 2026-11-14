@@ -1,9 +1,14 @@
 import { errorMessage } from "../tauri";
 import { icon } from "../icons/icons";
-import { button, iconButton } from "../ui/controls";
+import { button, iconButton, setButtonLabel } from "../ui/controls";
 import { create, replaceChildren } from "../ui/dom";
 import { formatBytes } from "./format";
 import type { ChatDeleteResult } from "./types";
+import "../styles/delete-warnings.css";
+
+export type ChatDeleteRun = (
+  backupBeforeDelete: boolean,
+) => Promise<ChatDeleteResult>;
 
 export interface ChatDeleteRequest {
   title: string;
@@ -15,11 +20,14 @@ export interface ChatDeleteRequest {
 
 export interface ChatDeleteDialogView {
   element: HTMLDialogElement;
-  open(
-    request: ChatDeleteRequest,
-    execute: () => Promise<ChatDeleteResult>,
-  ): void;
+  open(request: ChatDeleteRequest, execute: ChatDeleteRun): void;
 }
+
+const BACKUP_NOTE =
+  "已勾选备份：确认后会先通过 SQLite 在线备份写入项目 backups/chat 目录；备份成功后才删除，操作不可撤销。";
+
+const NO_BACKUP_NOTE =
+  "未勾选备份：确认后将直接删除，不会创建备份文件，删除后无法恢复。";
 
 export function createChatDeleteDialog(
   onDeleted: (result: ChatDeleteResult) => void,
@@ -47,9 +55,17 @@ export function createChatDeleteDialog(
   ]);
   blocked.hidden = true;
 
-  const backupNote = create("p", "dialog__note", [
-    "确认后会先通过 SQLite 在线备份写入项目 backups/chat 目录；备份成功后才删除，操作不可撤销。",
+  const backupCheckbox = create("input", "chat-delete__checkbox");
+  backupCheckbox.type = "checkbox";
+  backupCheckbox.id = "chat-delete-backup";
+  backupCheckbox.checked = true;
+  const backupChoice = create("label", "chat-delete__backup", [
+    backupCheckbox,
+    create("span", "chat-delete__backup-label", ["删除前备份"]),
   ]);
+  backupChoice.htmlFor = backupCheckbox.id;
+
+  const backupNote = create("p", "dialog__note", [BACKUP_NOTE]);
   const errorText = create("span", "", [""]);
   const errorLine = create("p", "dialog__error", [errorText]);
   errorLine.hidden = true;
@@ -61,6 +77,7 @@ export function createChatDeleteDialog(
     listTitle,
     list,
     blocked,
+    backupChoice,
     backupNote,
     errorLine,
   ]);
@@ -75,7 +92,13 @@ export function createChatDeleteDialog(
 
   let busy = false;
   let locked = false;
-  let execute: (() => Promise<ChatDeleteResult>) | null = null;
+  let execute: ChatDeleteRun | null = null;
+
+  function syncBackupChoice(): void {
+    const backup = backupCheckbox.checked;
+    backupNote.textContent = backup ? BACKUP_NOTE : NO_BACKUP_NOTE;
+    setButtonLabel(confirm, backup ? "确认删除并备份" : "确认删除（不备份）");
+  }
 
   function showError(message: string): void {
     errorText.textContent = message;
@@ -87,6 +110,7 @@ export function createChatDeleteDialog(
     confirm.disabled = next || locked;
     cancel.disabled = next;
     close.disabled = next;
+    backupCheckbox.disabled = next || locked;
     dialog.setAttribute("aria-busy", String(next));
   }
 
@@ -117,9 +141,12 @@ export function createChatDeleteDialog(
       ? `已阻止删除：${reason}`
       : "";
     confirm.disabled = busy || locked;
+    backupCheckbox.disabled = busy || locked;
     confirm.title = locked
       ? "检测到 OpenCode 正在运行，当前无法删除"
-      : "删除会话并在删除前写入备份";
+      : backupCheckbox.checked
+        ? "删除会话并在删除前写入备份"
+        : "删除会话且不创建备份";
     showError("");
   }
 
@@ -135,14 +162,23 @@ export function createChatDeleteDialog(
   cancel.addEventListener("click", () => {
     closeWith("cancel");
   });
+  backupCheckbox.addEventListener("change", () => {
+    syncBackupChoice();
+    if (!locked) {
+      confirm.title = backupCheckbox.checked
+        ? "删除会话并在删除前写入备份"
+        : "删除会话且不创建备份";
+    }
+  });
   confirm.addEventListener("click", () => {
     if (busy || locked || execute === null) {
       return;
     }
     const run = execute;
+    const backupBeforeDelete = backupCheckbox.checked;
     showError("");
     setBusy(true);
-    run()
+    run(backupBeforeDelete)
       .then((result) => {
         setBusy(false);
         if (dialog.open) {
@@ -161,22 +197,27 @@ export function createChatDeleteDialog(
     }
   });
   dialog.addEventListener("close", () => {
+    if (dialog.open) {
+      // A queued close event from the previous show; open() already reset the new state.
+      return;
+    }
     execute = null;
     busy = false;
     locked = false;
+    backupCheckbox.checked = true;
+    syncBackupChoice();
     setBusy(false);
     showError("");
   });
 
-  function open(
-    request: ChatDeleteRequest,
-    run: () => Promise<ChatDeleteResult>,
-  ): void {
+  function open(request: ChatDeleteRequest, run: ChatDeleteRun): void {
     if (dialog.open) {
       return;
     }
     execute = run;
     busy = false;
+    backupCheckbox.checked = true;
+    syncBackupChoice();
     renderPreview(request);
     dialog.returnValue = "";
     dialog.showModal();

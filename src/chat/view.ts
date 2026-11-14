@@ -7,6 +7,7 @@ import {
   readChatSession,
 } from "./api";
 import { createChatDeleteDialog } from "./delete-dialog";
+import { createChatDeleteWarning } from "./delete-warning";
 import { createChatDialogShell } from "./dialog-shell";
 import { createChatListPane } from "./list-pane";
 import { chatNotice } from "./notice";
@@ -34,6 +35,7 @@ export function createChatView(): ChatView {
   let busy = false;
   let listToken = 0;
   let readerToken = 0;
+  let deleteToken = 0;
   let opener: HTMLElement | null = null;
 
   const listPane = createChatListPane({
@@ -68,10 +70,24 @@ export function createChatView(): ChatView {
     clearSelection();
     void loadSessions();
   });
-  document.body.append(deleteDialog.element);
+  const deleteWarning = createChatDeleteWarning();
+  document.body.append(deleteWarning.element, deleteDialog.element);
 
   function currentPath(): string {
     return listPane.getPath().trim();
+  }
+
+  function deleteTargetIsCurrent(
+    token: number,
+    path: string,
+    sessionId: string,
+  ): boolean {
+    return (
+      token === deleteToken &&
+      loadedPath === path &&
+      currentPath() === path &&
+      selected?.id === sessionId
+    );
   }
 
   function updateDeleteButton(): void {
@@ -103,6 +119,7 @@ export function createChatView(): ChatView {
       return;
     }
     const token = ++listToken;
+    deleteToken += 1;
     const previousPath = loadedPath;
     loadedPath = null;
     setBusy(true);
@@ -203,10 +220,22 @@ export function createChatView(): ChatView {
     if (session === null || busy || path === null) {
       return;
     }
-    setBusy(true);
-    listPane.showStatus("正在检查删除条件…", "neutral");
+    const token = ++deleteToken;
+    let started = false;
     try {
+      if (!(await deleteWarning.ensure())) {
+        return;
+      }
+      if (!deleteTargetIsCurrent(token, path, session.id)) {
+        return;
+      }
+      started = true;
+      setBusy(true);
+      listPane.showStatus("正在检查删除条件…", "neutral");
       const preview = await previewChatDelete(path, session.id);
+      if (!deleteTargetIsCurrent(token, path, session.id)) {
+        return;
+      }
       listPane.showStatus("已核对删除范围，请在确认窗口再次确认。", "neutral");
       deleteDialog.open(
         {
@@ -216,15 +245,25 @@ export function createChatView(): ChatView {
           sizeBytes: preview.sizeBytes,
           blockedReason: preview.blockedReason,
         },
-        () => deleteChatSession(path, session.id, preview.sessionIds),
+        (backupBeforeDelete) =>
+          deleteChatSession(
+            path,
+            session.id,
+            preview.sessionIds,
+            backupBeforeDelete,
+          ),
       );
     } catch (error: unknown) {
-      listPane.showStatus(
-        `无法检查删除条件：${errorMessage(error)}`,
-        "error",
-      );
+      if (token === deleteToken) {
+        listPane.showStatus(
+          `无法检查删除条件：${errorMessage(error)}`,
+          "error",
+        );
+      }
     } finally {
-      setBusy(false);
+      if (started) {
+        setBusy(false);
+      }
     }
   }
 
@@ -235,6 +274,7 @@ export function createChatView(): ChatView {
   }
 
   dialog.addEventListener("close", () => {
+    deleteToken += 1;
     if (opener !== null) {
       opener.focus();
     }
